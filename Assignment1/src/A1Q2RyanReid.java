@@ -336,9 +336,6 @@ public class A1Q2RyanReid implements GLEventListener {
 		gl.glLoadIdentity();
 
         drawQuads(gl);
-        gl.glEnd();
-		// TODO
-		
 	}
 
 	private static void drawQuads(GL2 gl) {
@@ -353,29 +350,80 @@ public class A1Q2RyanReid implements GLEventListener {
     }
 
     private static void drawBezierCurve(int pipe, GL2 gl) {
-        if(pipe != 0) {
-            float[] corner;
-            corner = getCorner(pipe);
-            gl.glColor3f(1f, 1f, 1f);
-            gl.glPointSize(5f);
-            gl.glBegin(GL.GL_POINTS);
-            if(corner != null) {
-                gl.glVertex2f(corner[0], corner[1]);
-            }
+        float[] closetPoint1;
+        int prevCorner;
+        int nextCorner;
+        float[] closetPoint2;
 
-            gl.glEnd();
+        gl.glColor3f(1f, 1f, 1f);
+        gl.glPointSize(5f);
+        gl.glBegin(GL.GL_POINTS);
+
+        if(pipe != 0) {
+            prevCorner = getCorner(pipe, pipe - 1);
+            closetPoint1 = getClosetToCorner(prevCorner);
+
+            if(closetPoint1 != null) {
+                gl.glVertex2f(closetPoint1[0], closetPoint1[1]);
+            }
+        }
+        
+
+        if(pipe != PIPES.length / 4 - 1) {
+            nextCorner = getCorner(pipe, pipe + 1);
+            closetPoint2 = getClosetToCorner(nextCorner);
+
+            if(closetPoint2 != null) {
+                gl.glVertex2f(closetPoint2[0], closetPoint2[1]);
+            }
+        }
+
+        gl.glEnd();
+    }
+
+    private static float[] getClosetToCorner(int corner) {
+        int pointBefore;
+        int pointAfter;
+        float distanceBefore;
+        float distanceAfter;
+
+        if(corner == 0) {
+            pointBefore = 3;
+            pointAfter = 1;
+        } else if(corner % 4 == 0) {
+            pointBefore = corner + 3;
+            pointAfter = corner + 1;
+        } else if((corner + 1) % 4 == 0) {
+            pointBefore = corner - 1;
+            pointAfter = corner - 3;
+        }
+        else {
+            pointBefore = corner - 1;
+            pointAfter = corner + 1;
+        }
+
+        distanceAfter = calculateDistance(corner, pointAfter);
+        distanceBefore = calculateDistance(corner, pointBefore);
+
+        if(distanceAfter <= distanceBefore) {
+            return  PIPES[pointAfter];
+        } else {
+            return PIPES[pointBefore];
         }
     }
 
+    private static float calculateDistance(int pointA, int pointX) {
+        return (float) Math.sqrt( Math.pow(PIPES[pointX][0] - PIPES[pointA][0], 2) + Math.pow(PIPES[pointX][1] - PIPES[pointA][1], 2));
+    }
 
-    private static float[] getCorner(int pipe) {
-        float[] corner = null;
+    private static int getCorner(int pipe, int compareToPipe) {
+        int corner = -1;
         boolean inside;
         for(int i = 0; i < 4; i++) {
-            inside = isInsidePreviousPipe(pipe - 1, getPointOne(pipe, i), getPointTwo(pipe, i));
+            inside = isInsidePreviousPipe(compareToPipe, getPointOne(pipe, i), getPointTwo(pipe, i));
 
             if(inside) {
-                corner = PIPES[(pipe * 4) + i];
+                corner = (pipe * 4) + i;
                 print("Found the corner: " + pipe);
                 break;
             }
