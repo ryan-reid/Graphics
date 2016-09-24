@@ -5,7 +5,7 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
 
 public class A1Q2RyanReid implements GLEventListener {
-	public static final String WINDOW_TITLE = "A1Q2: [Your name here]"; // TODO: change
+	public static final String WINDOW_TITLE = "A1Q2: [Ryan Reid]";
 	public static final int INITIAL_WIDTH = 640;
 	public static final int INITIAL_HEIGHT = 640;
 
@@ -335,9 +335,102 @@ public class A1Q2RyanReid implements GLEventListener {
 
 		gl.glLoadIdentity();
 
+        drawQuads(gl);
+        gl.glEnd();
 		// TODO
 		
 	}
+
+	private static void drawQuads(GL2 gl) {
+
+        int pipesTotal = PIPES.length / 4;
+
+        for(int i = 0; i < pipesTotal; i++) {
+            setColour(i, gl);
+            drawSpecificQuad(i, gl);
+            drawBezierCurve(i, gl);
+        }
+    }
+
+    private static void drawBezierCurve(int pipe, GL2 gl) {
+        if(pipe != 0) {
+            float[] corner;
+            corner = getCorner(pipe);
+            gl.glColor3f(1f, 1f, 1f);
+            gl.glPointSize(5f);
+            gl.glBegin(GL.GL_POINTS);
+            if(corner != null) {
+                gl.glVertex2f(corner[0], corner[1]);
+            }
+
+            gl.glEnd();
+        }
+    }
+
+
+    private static float[] getCorner(int pipe) {
+        float[] corner = null;
+        boolean inside;
+        for(int i = 0; i < 4; i++) {
+            inside = isInsidePreviousPipe(pipe - 1, getPointOne(pipe, i), getPointTwo(pipe, i));
+
+            if(inside) {
+                corner = PIPES[(pipe * 4) + i];
+                print("Found the corner: " + pipe);
+                break;
+            }
+        }
+
+        return corner;
+    }
+
+    public static void print(String string) {
+        System.out.println(string);
+    }
+
+    private static boolean isInsidePreviousPipe(int pipe, float xCoord, float yCoord) {
+        boolean isInside = false;
+
+        int j = 3;
+        for(int i = 0; i < 4; i++) {
+            if(getPointTwo(pipe, i) < yCoord && getPointTwo(pipe, j) >= yCoord ||
+                getPointTwo(pipe, j) < yCoord && getPointTwo(pipe, i) >= yCoord) {
+
+                if(getPointOne(pipe, i) + (yCoord - getPointTwo(pipe, i)) / (getPointTwo(pipe, j) - getPointTwo(pipe, i)) * (getPointOne(pipe, j) - getPointOne(pipe, i)) < xCoord) {
+                    isInside = !isInside;
+                }
+            }
+                j = i;
+        }
+
+        return isInside;
+    }
+
+    private static void setColour(int pipe, GL2 gl) {
+        float[] colourArray = getColour(pipe);
+        gl.glColor3f(colourArray[0], colourArray[1], colourArray[2]);
+    }
+
+    private static void drawSpecificQuad(int quadNumber, GL2 gl) {
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glVertex2f(getPointOne(quadNumber, 0), getPointTwo(quadNumber, 0));
+        gl.glVertex2f(getPointOne(quadNumber, 1), getPointTwo(quadNumber, 1));
+        gl.glVertex2f(getPointOne(quadNumber, 2), getPointTwo(quadNumber, 2));
+        gl.glVertex2f(getPointOne(quadNumber, 3), getPointTwo(quadNumber, 3));
+        gl.glEnd();
+    }
+
+    private static float getPointOne(int pipe, int pointVertexIndex) {
+        return PIPES[pipe * 4 + pointVertexIndex][0];
+    }
+
+    private static float getPointTwo(int pipe, int pointVertexIndex) {
+        return PIPES[pipe * 4 + pointVertexIndex][1];
+    }
+
+    private static float[] getColour(int item) {
+        return COLOURS[item % COLOURS.length];
+    }
 
 	// TODO: more methods or data
 	
