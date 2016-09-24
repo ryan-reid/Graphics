@@ -3,7 +3,7 @@ import java.awt.event.*;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
 
-public class A1Q1Skeleton implements GLEventListener {
+public class A1Q1RyanReid implements GLEventListener {
 	public static final String WINDOW_TITLE = "A1Q1: [Ryan Reid]";
 	public static final int INITIAL_WIDTH = 640;
     public static final float PI = (float) Math.PI;
