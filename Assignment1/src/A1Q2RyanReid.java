@@ -1,5 +1,6 @@
 import java.awt.Frame;
 import java.awt.event.*;
+import java.util.ArrayList;
 
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
@@ -8,6 +9,10 @@ public class A1Q2RyanReid implements GLEventListener {
 	public static final String WINDOW_TITLE = "A1Q2: [Ryan Reid]";
 	public static final int INITIAL_WIDTH = 640;
 	public static final int INITIAL_HEIGHT = 640;
+	public static final int BEFORE = 0;
+	public static final int AFTER = 1;
+	public static final int X_CORD = 0;
+	public static final int Y_CORD = 1;
 
 	public static void main(String[] args) {
 		final Frame frame = new Frame(WINDOW_TITLE);
@@ -336,81 +341,222 @@ public class A1Q2RyanReid implements GLEventListener {
 		gl.glLoadIdentity();
 
         drawQuads(gl);
+		drawBezierCurve(gl);
+	}
+	
+	public class Edge{
+		private Vertex _first;
+		private Vertex _second;
+		
+		public Edge(Vertex first, Vertex second) {
+			this._first = first;
+			this._second = second;
+		}
+		
+		public Vertex getFirst() {
+			return _first;
+		}
+		
+		public Vertex getSecond() {
+			return _second;
+		}
 	}
 
-	private static void drawQuads(GL2 gl) {
+	public class BezierPoints {
+		Vertex _vert1;
+		Vertex _vert2;
+		Vertex _vert3;
+
+		public BezierPoints(Vertex vert1, Vertex vert2, Vertex vert3) {
+			this._vert1 = vert1;
+			this._vert2 = vert2;
+			this._vert3 = vert3;
+		}
+	}
+
+	public class Vertex {
+		private float _x;
+		private float _y;
+		
+		public Vertex(float x, float y) {
+			this._x = x;
+			this._y = y;
+		}
+
+		public float getX() {
+			return _x;
+		}
+		
+		public float getY() {
+			return _y;
+		}
+	}
+
+	private void drawQuads(GL2 gl) {
 
         int pipesTotal = PIPES.length / 4;
 
         for(int i = 0; i < pipesTotal; i++) {
             setColour(i, gl);
             drawSpecificQuad(i, gl);
-            drawBezierCurve(i, gl);
+			addEdge(i);
         }
     }
 
-    private static void drawBezierCurve(int pipe, GL2 gl) {
-        float[] closetPoint1;
-        int prevCorner;
-        int nextCorner;
-        float[] closetPoint2;
+	public ArrayList<Edge> edges = new ArrayList<>();
+	public ArrayList<BezierPoints> bezierPoints = new ArrayList<>();
+	public ArrayList<Vertex> coveredCorners = new ArrayList<>();
 
-        gl.glColor3f(1f, 1f, 1f);
-        gl.glPointSize(5f);
-        gl.glBegin(GL.GL_POINTS);
+    private void drawBezierCurve(GL2 gl) {
+		for(int i = 0; i < edges.size() - 1; i+= 2) {
+			drawCorners(i, gl);
+		}
+		float colour[];
 
-        if(pipe != 0) {
-            prevCorner = getCorner(pipe, pipe - 1);
-            closetPoint1 = getClosetToCorner(prevCorner);
+		int j = 0;
+		for(int i = 0; i < bezierPoints.size(); i++) {
+			colour = getColour(i);
+			gl.glColor3f(colour[0], colour[1], colour[2]);
 
-            if(closetPoint1 != null) {
-                gl.glVertex2f(closetPoint1[0], closetPoint1[1]);
-            }
-        }
-        
-
-        if(pipe != PIPES.length / 4 - 1) {
-            nextCorner = getCorner(pipe, pipe + 1);
-            closetPoint2 = getClosetToCorner(nextCorner);
-
-            if(closetPoint2 != null) {
-                gl.glVertex2f(closetPoint2[0], closetPoint2[1]);
-            }
-        }
-
-        gl.glEnd();
+			gl.glBegin(GL2.GL_TRIANGLE_FAN);
+			for(float t = 0; t < 1; t +=.01) {
+				float xCoord = getBezierCurveXCoord(bezierPoints.get(i), t);
+				float yCoord = getBezierCurveYCoord(bezierPoints.get(i), t);
+				gl.glVertex2f(xCoord, yCoord);
+				//gl.glVertex2f(coveredCorners.get(j).getX(), coveredCorners.get(j).getY());
+			}
+			gl.glEnd();
+			j = j + 2;
+		}
     }
 
-    private static float[] getClosetToCorner(int corner) {
-        int pointBefore;
-        int pointAfter;
+	private float getBezierCurveXCoord(BezierPoints points, float t) {
+		float xCoord;
+
+		xCoord = (float) Math.pow(1 - t, 2) * points._vert1.getX() + (2 * (1 - t) * t * points._vert2.getX()) + ((t * t) * points._vert3.getX());
+
+		return xCoord;
+	}
+
+	private float getBezierCurveYCoord(BezierPoints points, float t) {
+		float yCoord;
+
+		yCoord = (float) Math.pow(1 - t , 2) * points._vert1.getY() + (2 * (1 - t) * t * points._vert2.getY()) + ((t * t) * points._vert3.getY());
+
+		return yCoord;
+	}
+
+	private void drawCorners(int corner, GL2 gl) {
+		Vertex intersectionPoint;
+		gl.glColor3f(1f, 1f, 1f);
+		gl.glLineStipple(1, (short) (0xAAAA));
+		gl.glEnable(GL2.GL_LINE_STIPPLE);
+		gl.glBegin(GL.GL_LINES);
+		gl.glVertex2f(edges.get(corner).getFirst().getX(), edges.get(corner).getFirst().getY());
+		intersectionPoint = getIntersect(corner);
+		gl.glVertex2f(intersectionPoint.getX(), intersectionPoint.getY());
+		gl.glVertex2f(intersectionPoint.getX(), intersectionPoint.getY());
+		gl.glVertex2f(edges.get(corner + 1).getFirst().getX(), edges.get(corner + 1).getFirst().getY());
+		gl.glEnd();
+
+		bezierPoints.add(new BezierPoints(edges.get(corner).getFirst(), intersectionPoint, edges.get(corner + 1).getFirst()));
+	}
+
+	private Vertex getIntersectionVertex(Edge edgeA, Edge edgeB) {
+		float xCoord;
+		float yCoord;
+		float x1 = edgeA.getFirst().getX();
+		float x2 = edgeA.getSecond().getX();
+		float x3 = edgeB.getFirst().getX();
+		float x4 = edgeB.getSecond().getX();
+		float y1 = edgeA.getFirst().getY();
+		float y2 = edgeA.getSecond().getY();
+		float y3 = edgeB.getFirst().getY();
+		float y4 = edgeB.getSecond().getY();
+
+		xCoord = ( ((x1*y2) - (y1*x2)) * (x3 - x4)) - ((x1 - x2) * ((x3*y4) - (y3 * x4)));
+		xCoord = xCoord / ( ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4)));
+
+		yCoord = ((((x1*y2) - (y1*x2)) * (y3 - y4)) - ((y1-y2) * ((x3*y4) - (y3*x4))));
+		yCoord = yCoord / (((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4)));
+
+		return new Vertex(xCoord, yCoord);
+	}
+
+	//Intersect with the NEXT edge
+	private Vertex getIntersect(int edge) {
+		Vertex intersect = null;
+
+		if(edge < edges.size() - 1) {
+			intersect = getIntersectionVertex(edges.get(edge), edges.get(edge + 1));
+		}
+
+		return intersect;
+	}
+
+	private void addEdge(int pipe) {
+		int prevCorner;
+		int nextCorner;
+
+		if(pipe != 0) {
+			prevCorner = getCorner(pipe, pipe - 1);
+			coveredCorners.add(new Vertex(PIPES[prevCorner][X_CORD], PIPES[prevCorner][Y_CORD]));
+			edges.add(getClosetToCorner(prevCorner));
+		}
+
+		if(pipe != PIPES.length / 4 - 1) {
+			nextCorner = getCorner(pipe, pipe + 1);
+			coveredCorners.add(new Vertex(PIPES[nextCorner][X_CORD], PIPES[nextCorner][Y_CORD]));
+			edges.add(getClosetToCorner(nextCorner));
+		}
+	}
+
+    private Edge getClosetToCorner(int corner) {
+		int adjacentVertex[];
+		int nextAdjacentVertex[];
+		Vertex first;
+		Vertex second;
         float distanceBefore;
-        float distanceAfter;
-
-        if(corner == 0) {
-            pointBefore = 3;
-            pointAfter = 1;
-        } else if(corner % 4 == 0) {
-            pointBefore = corner + 3;
-            pointAfter = corner + 1;
-        } else if((corner + 1) % 4 == 0) {
-            pointBefore = corner - 1;
-            pointAfter = corner - 3;
-        }
-        else {
-            pointBefore = corner - 1;
-            pointAfter = corner + 1;
-        }
-
-        distanceAfter = calculateDistance(corner, pointAfter);
-        distanceBefore = calculateDistance(corner, pointBefore);
+        float distanceAfter;		
+		
+		adjacentVertex = getPoints(corner);
+		
+        distanceAfter = calculateDistance(corner, adjacentVertex[AFTER]);
+        distanceBefore = calculateDistance(corner, adjacentVertex[BEFORE]);
 
         if(distanceAfter <= distanceBefore) {
-            return  PIPES[pointAfter];
+			first = new Vertex(PIPES[adjacentVertex[AFTER]][X_CORD], PIPES[adjacentVertex[AFTER]][Y_CORD]);
+			nextAdjacentVertex = getPoints(adjacentVertex[AFTER]);
+			second = new Vertex(PIPES[nextAdjacentVertex[AFTER]][X_CORD], PIPES[nextAdjacentVertex[AFTER]][Y_CORD]);
+			return new Edge(first, second);
         } else {
-            return PIPES[pointBefore];
+			first = new Vertex(PIPES[adjacentVertex[BEFORE]][X_CORD], PIPES[adjacentVertex[BEFORE]][Y_CORD]);
+			nextAdjacentVertex = getPoints(adjacentVertex[BEFORE]);
+			second = new Vertex(PIPES[nextAdjacentVertex[BEFORE]][X_CORD], PIPES[nextAdjacentVertex[BEFORE]][Y_CORD]);
+			return new Edge(first, second);
         }
     }
+	
+	private static int[] getPoints(int corner) {
+		int adjacentPipes[] = new int[2];
+		
+		if(corner == 0) {
+			adjacentPipes[BEFORE] = 3;
+			adjacentPipes[AFTER] = 1;
+		} else if(corner % 4 == 0) {
+			adjacentPipes[BEFORE] = corner + 3;
+			adjacentPipes[AFTER] = corner + 1;
+		} else if((corner + 1) % 4 == 0) {
+			adjacentPipes[BEFORE] = corner - 1;
+			adjacentPipes[AFTER] = corner - 3;
+		}
+		else {
+			adjacentPipes[BEFORE] = corner - 1;
+			adjacentPipes[AFTER] = corner + 1;
+		}
+		
+		return adjacentPipes;
+	}
 
     private static float calculateDistance(int pointA, int pointX) {
         return (float) Math.sqrt( Math.pow(PIPES[pointX][0] - PIPES[pointA][0], 2) + Math.pow(PIPES[pointX][1] - PIPES[pointA][1], 2));
