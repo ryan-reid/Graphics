@@ -413,7 +413,7 @@ public class A1Q2RyanReid implements GLEventListener {
 		}
 		float colour[];
 
-		int j = 0;
+		int j = 1;
 		for(int i = 0; i < bezierPoints.size(); i++) {
 			colour = getColour(i);
 			gl.glColor3f(colour[0], colour[1], colour[2]);
@@ -423,7 +423,7 @@ public class A1Q2RyanReid implements GLEventListener {
 				float xCoord = getBezierCurveXCoord(bezierPoints.get(i), t);
 				float yCoord = getBezierCurveYCoord(bezierPoints.get(i), t);
 				gl.glVertex2f(xCoord, yCoord);
-				//gl.glVertex2f(coveredCorners.get(j).getX(), coveredCorners.get(j).getY());
+				gl.glVertex2f(coveredCorners.get(j).getX(), coveredCorners.get(j).getY());
 			}
 			gl.glEnd();
 			j = j + 2;
