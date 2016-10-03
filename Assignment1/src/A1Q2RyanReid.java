@@ -414,18 +414,19 @@ public class A1Q2RyanReid implements GLEventListener {
 		float colour[];
 
 		int j = 1;
-		for(int i = 0; i < bezierPoints.size(); i++) {
-			colour = getColour(i);
-			gl.glColor3f(colour[0], colour[1], colour[2]);
+		for(int i = 0; i < bezierPoints.size() / 3; i++) {
+            colour = getColour(i);
+            gl.glColor3f(colour[0], colour[1], colour[2]);
 
-			gl.glBegin(GL2.GL_TRIANGLE_FAN);
-			for(float t = 0; t < 1; t +=.01) {
-				float xCoord = getBezierCurveXCoord(bezierPoints.get(i), t);
-				float yCoord = getBezierCurveYCoord(bezierPoints.get(i), t);
-				gl.glVertex2f(xCoord, yCoord);
-				gl.glVertex2f(coveredCorners.get(j).getX(), coveredCorners.get(j).getY());
-			}
-			gl.glEnd();
+            gl.glBegin(GL2.GL_TRIANGLE_FAN);
+            for(float t = 0; t < 1; t +=.01) {
+                float xCoord = getBezierCurveXCoord(bezierPoints.get(i), t);
+                float yCoord = getBezierCurveYCoord(bezierPoints.get(i), t);
+                gl.glVertex2f(xCoord, yCoord);
+                gl.glVertex2f(coveredCorners.get(j).getX(), coveredCorners.get(j).getY());
+            }
+            gl.glEnd();
+
 			j = j + 2;
 		}
     }

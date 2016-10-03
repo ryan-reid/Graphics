@@ -266,33 +266,21 @@ public class A1Q3RyanReid implements GLEventListener {
 			{ 0.75f, 0.5f, 0.75f }
 	};
 
-	private class Vertex implements Comparable{
+	private class Vertex {
 		private float _x;
 		private float _y;
 
-		public Vertex(float x, float y) {
+		private Vertex(float x, float y) {
 			this._x = x;
 			this._y = y;
 		}
 
-		public void incrementY(float value) {
-			_y += value;
-		}
-
-		public float getX() {
+        private float getX() {
 			return _x;
 		}
 
-		public float getY() {
+        private float getY() {
 			return _y;
-		}
-
-		public int compareTo(Object vert) {
-			if(vert instanceof Vertex) {
-				return (int) (this._x - ((Vertex) vert).getX());
-			}
-
-			return -1;
 		}
 	}
 
@@ -300,24 +288,25 @@ public class A1Q3RyanReid implements GLEventListener {
 		private Vertex _first;
 		private Vertex _second;
 
-		public Edge(Vertex first, Vertex second) {
-			this._first = first;
-			this._second = second;
+        private Edge(Vertex first, Vertex second) {
+			this._first = new Vertex(first.getX(), first.getY());
+			this._second = new Vertex(second.getX(), second.getY());
 		}
 
-		public Vertex getFirst() {
+        private Vertex getFirst() {
 			return _first;
 		}
 
-		public Vertex getSecond() {
+        private Vertex getSecond() {
 			return _second;
 		}
 	}
 
 	private class Polygon {
-		public ArrayList<Vertex> _vertices;
+        private ArrayList<Vertex> _vertices;
+        private boolean _clockwise;
 
-		public Vertex getVertex(int index) {
+        private Vertex getVertex(int index) {
 			if(index <= _vertices.size()) {
 				return _vertices.get(index);
 			} else {
@@ -325,37 +314,16 @@ public class A1Q3RyanReid implements GLEventListener {
 			}
 		}
 
-		public int size() {
+        private int size() {
 			return _vertices.size();
 		}
 
-		public Polygon(ArrayList<Vertex> vertices) {
-			_vertices = new ArrayList<>();
-			this._vertices.addAll(vertices);
-		}
-
-		public Polygon() {
+        private Polygon() {
 			this._vertices = new ArrayList<>();
 		}
 
-		public void addVertex(Vertex vertex) {
-			_vertices.add(vertex);
-		}
-
-		public void removeVertex(Vertex vertex) {
-			_vertices.remove(vertex);
-		}
-	}
-
-	private class Triangle {
-		public Edge _edge1;
-		public Edge _edge2;
-		public Edge _edge3;
-
-		public Triangle(Edge edge1, Edge edge2, Edge edge3) {
-			this._edge1 = edge1;
-			this._edge2 = edge2;
-			this._edge3 = edge3;
+        private void addVertex(Vertex vertex) {
+            this._vertices.add(new Vertex(vertex.getX(), vertex.getY()));
 		}
 	}
 
@@ -377,24 +345,122 @@ public class A1Q3RyanReid implements GLEventListener {
 
 		gl.glLoadIdentity();
 
+        fillBackground(gl);
 		fillPolygon();
 		fillHoles();
 		drawRightPolygon(gl);
-		drawLeftPolygon(gl);
-		drawLeftHole(gl);
-		drawRightHole(gl);
+        drawLeftPolygon(gl);
 	}
 
-	public Polygon polygon;
-	public ArrayList<Polygon> holes = new ArrayList<>();
+	private void drawLeftPolygon(GL2 gl) {
+        for(int i = 0; i < holes.size(); i++) {
+            getPolygonOrientation(holes.get(i));
+        }
+
+        getPolygonOrientation(polygon);
+
+        colourPointsInside(gl, 0);
+        outlinePolygons(gl, 0);
+        addEdges();
+
+        drawEdges(gl);
+    }
+
+    public void drawEdges(GL2 gl) {
+        gl.glColor3f(0f, 0f, 0f);
+        gl.glBegin(GL2.GL_LINES);
+        for(int i = 0; i < newEdges.size(); i++) {
+            gl.glVertex2f(newEdges.get(i).getFirst().getX() , newEdges.get(i).getFirst().getY());
+            gl.glVertex2f(newEdges.get(i).getSecond().getX(),  newEdges.get(i).getSecond().getY());
+        }
+        gl.glEnd();
+    }
+
+    public ArrayList<Edge> newEdges;
+    private void addEdges() {
+        newEdges = new ArrayList<>();
+        boolean intersects = false;
+
+        for(int i = 0; i < holes.size(); i++) {
+            for(int j = 0; j < holes.get(i).size(); j++) {
+                float x1 = holes.get(i).getVertex(j).getX();
+                float y1 = holes.get(i).getVertex(j).getY();
+
+                for(int polyEdgeToCheck = 0; polyEdgeToCheck < polygon.size(); polyEdgeToCheck++) {
+                    float x2 = polygon.getVertex(polyEdgeToCheck).getX();
+                    float y2 = polygon.getVertex(polyEdgeToCheck).getY();
+
+                    intersects = false;
+                    for(int polyCompare = 0; polyCompare < polygon.size() - 1; polyCompare++) {
+                        float x3 = polygon.getVertex(polyCompare).getX();
+                        float x4 = polygon.getVertex(polyCompare + 1).getX();
+                        float y3 = polygon.getVertex(polyCompare).getY();
+                        float y4 = polygon.getVertex(polyCompare + 1).getY();
+
+                        float x2SubX1, y2Suby1, x4Subx3, y4Suby3, y1Suby3, x1Subx3;
+                        x2SubX1 = x2 - x1;
+                        y2Suby1 = y2 - y1;
+                        x4Subx3 = x4 - x3;
+                        y4Suby3 = y4 - y3;
+                        y1Suby3 = y1 - y3;
+                        x1Subx3 = x1 - x3;
+
+                        float tA, tB;
+                        tA = ((x4Subx3 * y1Suby3) -  (y4Suby3 * x1Subx3)) / ((y4Suby3 * x2SubX1) - (x4Subx3 * y2Suby1));
+
+                        tB = ( x2SubX1 * y1Suby3) - (y2Suby1 * (x1Subx3)) / ((y4Suby3 * x2SubX1) - (x4Subx3 * y2Suby1));
+
+                        if((tA >= 0 && tA <= 1 && tB >= 0 && tB <= 1)) {
+                            System.out.println("TA: " + tA + " TB: " + tB);
+                            intersects = true;
+                            break;
+                        }
+                    }
+
+                    if(!intersects) {
+                        newEdges.add(new Edge(holes.get(i).getVertex(j), polygon.getVertex(polyEdgeToCheck)));
+                    }
+                }
+            }
+        }
+    }
+
+    private void getPolygonOrientation(Polygon poly) {
+        float total = 0.0f;
+        for(int i = 0; i < poly.size() - 1; i++) {
+            total += (poly.getVertex(i + 1).getX() - poly.getVertex(i).getX()) * (poly.getVertex(i + 1).getY() - poly.getVertex(i).getY());
+        }
+
+        if(total >= 0) {
+            poly._clockwise = true;
+        }
+    }
+
+    private void addMutualEdges() {
+
+    }
+
+	private Polygon polygon;
+    private ArrayList<Polygon> holes = new ArrayList<>();
+
+    private void fillBackground(GL2 gl) {
+        gl.glBegin(GL.GL_POINTS);
+        gl.glColor3f(.92f, 0.78f, 0.62f);
+        for(float i = .5f; i < width; i++) {
+            for(float j = .5f; j < height; j++) {
+                gl.glVertex2f(i, j);
+            }
+        }
+    }
 
 	private void fillHoles() {
+        holes = new ArrayList<>();
 		for(int i = 0; i < HOLES.length; i++) {
 			Polygon hole = new Polygon();
 			for(int j = 0; j < HOLES[i].length; j++) {
-				hole.addVertex(new Vertex(HOLES[i][j][0], HOLES[i][j][1]));
+                hole.addVertex(new Vertex(HOLES[i][j][0], HOLES[i][j][1]));
 			}
-			holes.add(hole);
+            holes.add(hole);
 		}
 	}
 
@@ -406,51 +472,81 @@ public class A1Q3RyanReid implements GLEventListener {
 		}
 	}
 
-	private void drawLeftHole(GL2 gl) {
-		gl.glBegin(GL2.GL_POLYGON);
-		gl.glColor3f(0f, 0f, 0f);
-		for(int i = 0; i < holes.size(); i++) {
-			for(int j = 0; j < holes.get(i).size(); j++) {
-				gl.glVertex2f(holes.get(i).getVertex(j)._x, holes.get(i).getVertex(j)._y);
-			}
-		}
-		gl.glEnd();
-	}
-
-	private void drawRightHole(GL2 gl) {
-		gl.glBegin(GL2.GL_POLYGON);
-		gl.glColor3f(0f, 0f, 0f);
-		for(int i = 0; i < holes.size(); i++) {
-			for(int j = 0; j < holes.get(i).size(); j++) {
-				gl.glVertex2f(holes.get(i).getVertex(j)._x + width/2, holes.get(i).getVertex(j)._y);
-			}
-		}
-		gl.glEnd();
-	}
-
 	private void drawRightPolygon(GL2 gl) {
-		for(int y = 0; y < height; y ++) {
-			Edge edge = new Edge(new Vertex(width / 2, y), new Vertex(width, y));
-			colourPointsInside(edge, gl);
-		}
+        colourPointsInside(gl, width / 2);
+        outlinePolygons(gl, width / 2);
 	}
 
-	private void colourPointsInside(Edge edge, GL2 gl) {
-		for(int y = 0; y < height; y++) {
-			
-		}
-	}
+	private void outlinePolygons(GL2 gl, int xMod) {
+        gl.glColor3f(0f, 0f, 0f);
+        gl.glBegin(GL2.GL_LINE_STRIP);
+        for(int i = 0; i <  polygon.size(); i++) {
+            gl.glVertex2f(polygon.getVertex(i).getX() + xMod, polygon.getVertex(i).getY());
+        }
+        gl.glEnd();
 
-	private void drawLeftPolygon(GL2 gl) {
-		gl.glBegin(GL2.GL_POLYGON);
-		gl.glColor3f(1f, 1f, 1f);
-		for(int i = 0; i < polygon.size(); i++) {
-			gl.glVertex2f(polygon.getVertex(i)._x, polygon.getVertex(i)._y);
-		}
-		gl.glEnd();
-	}
 
-	// TODO: more methods or data
+        for(int i = 0; i < holes.size(); i++) {
+            gl.glColor3f(0f, 0f, 0f);
+            gl.glBegin(GL2.GL_LINE_STRIP);
+            for(int j = 0; j < holes.get(i).size(); j++) {
+                gl.glVertex2f(holes.get(i).getVertex(j).getX() + xMod, holes.get(i).getVertex(j).getY());
+            }
+            gl.glEnd();
+        }
+    }
+
+    private boolean isInsidePreviousPipe(int x, int y) {
+        boolean intersects = false;
+
+        int i, j;
+        for (i = 0, j = polygon.size()-1; i < polygon.size(); j = i++) {
+            if ( ((polygon.getVertex(i).getY() > y) != (polygon.getVertex(j).getY()>y)) &&
+                    (x < (polygon.getVertex(j).getX() - polygon.getVertex(i).getX()) * (y - polygon.getVertex(i).getY())
+                    / (polygon.getVertex(j).getY() - polygon.getVertex(i).getY()) + polygon.getVertex(i).getX()) )
+                intersects = !intersects;
+        }
+
+        return intersects;
+    }
+
+    private boolean isInsideHolePolygon(int x, int y) {
+        boolean intersects = false;
+        for(int poly = 0; poly < holes.size(); poly++) {
+            int i, j;
+            for (i = 0, j = holes.get(poly).size()-1; i < holes.get(poly).size(); j = i++) {
+                if ( ((holes.get(poly).getVertex(i).getY() > y) != (holes.get(poly).getVertex(j).getY()>y)) &&
+                        (x < (holes.get(poly).getVertex(j).getX() - holes.get(poly).getVertex(i).getX()) * (y - holes.get(poly).getVertex(i).getY())
+                        / (holes.get(poly).getVertex(j).getY() - holes.get(poly).getVertex(i).getY()) + holes.get(poly).getVertex(i).getX()) )
+
+                    intersects = !intersects;
+            }
+        }
+
+        return intersects;
+    }
+
+	private void colourPointsInside(GL2 gl, int xMod) {
+        boolean intersects;
+        for(int i = 0; i < width / 2; i++) {
+            for (int j = 0; j < height; j++) {
+                boolean inside = isInsidePreviousPipe(i, j);
+                boolean inHole = isInsideHolePolygon(i, j);
+
+                intersects = inside & !inHole;
+                if(intersects) {
+                    if((i + j) % 2 == 0) {
+                        gl.glBegin(GL2.GL_POINTS);
+                        gl.glColor3f(0f, 0f, 1f);
+                        gl.glVertex2f(i + xMod+ .5f, j + .5f);
+                        gl.glEnd();
+                    }
+                }
+            }
+        }
+
+        gl.glEnd();
+	}
 
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
