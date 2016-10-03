@@ -282,6 +282,14 @@ public class A1Q3RyanReid implements GLEventListener {
         private float getY() {
 			return _y;
 		}
+
+		private boolean equals(Vertex compareTo) {
+            return (_x == compareTo.getX() && _y == compareTo.getY());
+        }
+
+        private boolean notEquals(Vertex compareTo) {
+            return !equals(compareTo);
+        }
 	}
 
 	private class Edge{
@@ -361,7 +369,7 @@ public class A1Q3RyanReid implements GLEventListener {
 
         colourPointsInside(gl, 0);
         outlinePolygons(gl, 0);
-        addEdges();
+        getEdges();
 
         drawEdges(gl);
     }
@@ -377,48 +385,79 @@ public class A1Q3RyanReid implements GLEventListener {
     }
 
     public ArrayList<Edge> newEdges;
-    private void addEdges() {
+
+    private void getEdges() {
         newEdges = new ArrayList<>();
-        boolean intersects = false;
+        boolean intersects;
 
-        for(int i = 0; i < holes.size(); i++) {
-            for(int j = 0; j < holes.get(i).size(); j++) {
-                float x1 = holes.get(i).getVertex(j).getX();
-                float y1 = holes.get(i).getVertex(j).getY();
+        for(int holePolygon = 0; holePolygon < holes.size(); holePolygon++) {
+            for(int polyCornerToCheck = 0; polyCornerToCheck < holes.get(holePolygon).size(); polyCornerToCheck++) {
+                float x1 = holes.get(holePolygon).getVertex(polyCornerToCheck).getX();
+                float y1 = holes.get(holePolygon).getVertex(polyCornerToCheck).getY();
 
-                for(int polyEdgeToCheck = 0; polyEdgeToCheck < polygon.size(); polyEdgeToCheck++) {
-                    float x2 = polygon.getVertex(polyEdgeToCheck).getX();
-                    float y2 = polygon.getVertex(polyEdgeToCheck).getY();
-
+                for(int polyVertexToCheck = 0; polyVertexToCheck < polygon.size(); polyVertexToCheck++) {
+                    float x2 = polygon.getVertex(polyVertexToCheck).getX();
+                    float y2 = polygon.getVertex(polyVertexToCheck).getY();
                     intersects = false;
-                    for(int polyCompare = 0; polyCompare < polygon.size() - 1; polyCompare++) {
-                        float x3 = polygon.getVertex(polyCompare).getX();
-                        float x4 = polygon.getVertex(polyCompare + 1).getX();
-                        float y3 = polygon.getVertex(polyCompare).getY();
-                        float y4 = polygon.getVertex(polyCompare + 1).getY();
+                    //Compare against
+                    for(int polyEdgeToCompare = 0; polyEdgeToCompare < polygon.size() - 1; polyEdgeToCompare++) {
+                        float x3 = polygon.getVertex(polyEdgeToCompare).getX();
+                        float x4 = polygon.getVertex(polyEdgeToCompare + 1).getX();
+                        float y3 = polygon.getVertex(polyEdgeToCompare).getY();
+                        float y4 = polygon.getVertex(polyEdgeToCompare + 1).getY();
 
-                        float x2SubX1, y2Suby1, x4Subx3, y4Suby3, y1Suby3, x1Subx3;
-                        x2SubX1 = x2 - x1;
-                        y2Suby1 = y2 - y1;
-                        x4Subx3 = x4 - x3;
-                        y4Suby3 = y4 - y3;
-                        y1Suby3 = y1 - y3;
-                        x1Subx3 = x1 - x3;
+                        if(polygon.getVertex(polyVertexToCheck).notEquals(polygon.getVertex(polyEdgeToCompare)) &&
+                            polygon.getVertex(polyVertexToCheck).notEquals(polygon.getVertex(polyEdgeToCompare + 1))) {
 
-                        float tA, tB;
-                        tA = ((x4Subx3 * y1Suby3) -  (y4Suby3 * x1Subx3)) / ((y4Suby3 * x2SubX1) - (x4Subx3 * y2Suby1));
+                            float num1 = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
+                            float num2 = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
+                            float den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
 
-                        tB = ( x2SubX1 * y1Suby3) - (y2Suby1 * (x1Subx3)) / ((y4Suby3 * x2SubX1) - (x4Subx3 * y2Suby1));
+                            if(den != 0.0f) {
+                                float ta, tb;
+                                ta = num1 / den;
+                                tb = num2 / den;
+                                if(ta > 0.0f && ta <= 1.0f && tb >= 0.0f && tb < 1.0f) {
+                                    intersects = true;
+                                    break;
+                                }
+                            }
 
-                        if((tA >= 0 && tA <= 1 && tB >= 0 && tB <= 1)) {
-                            System.out.println("TA: " + tA + " TB: " + tB);
-                            intersects = true;
-                            break;
                         }
                     }
 
                     if(!intersects) {
-                        newEdges.add(new Edge(holes.get(i).getVertex(j), polygon.getVertex(polyEdgeToCheck)));
+                        for(int holePolyToCompare = 0; holePolyToCompare < holes.size(); holePolyToCompare++) {
+                            for(int holePolyEdgeToCompare = 0; holePolyEdgeToCompare < holes.get(holePolyToCompare).size() - 1; holePolyEdgeToCompare++) {
+                                float x3 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare).getX();
+                                float x4 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare + 1).getX();
+                                float y3 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare).getY();
+                                float y4 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare + 1).getY();
+
+                                if(holes.get(holePolygon).getVertex(polyCornerToCheck).notEquals(holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare))
+                                    &&holes.get(holePolygon).getVertex(polyCornerToCheck).notEquals(holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare + 1))) {
+                                    float num1 = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
+                                    float num2 = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
+                                    float den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+
+                                    if(den != 0.0f) {
+                                        float ta, tb;
+                                        ta = num1 / den;
+                                        tb = num2 / den;
+                                        if(ta > 0.0f && ta <= 1.0f && tb >= 0.0f && tb < 1.0f) {
+                                            intersects = true;
+                                            break;
+                                        }
+                                    }
+
+                                }
+                            }
+                        }
+                    }
+
+
+                    if(!intersects) {
+                        newEdges.add(new Edge(holes.get(holePolygon).getVertex(polyCornerToCheck), polygon.getVertex(polyVertexToCheck)));
                     }
                 }
             }
