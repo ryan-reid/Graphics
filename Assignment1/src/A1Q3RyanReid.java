@@ -292,6 +292,42 @@ public class A1Q3RyanReid implements GLEventListener {
         }
 	}
 
+	private class Triangle {
+        public Vertex get_v1() {
+            return _v1;
+        }
+
+        public void set_v1(Vertex _v1) {
+            this._v1 = _v1;
+        }
+
+        public Vertex get_v2() {
+            return _v2;
+        }
+
+        public void set_v2(Vertex _v2) {
+            this._v2 = _v2;
+        }
+
+        public Vertex get_v3() {
+            return _v3;
+        }
+
+        public void set_v3(Vertex _v3) {
+            this._v3 = _v3;
+        }
+
+        private Vertex _v1;
+        private Vertex _v2;
+        private Vertex _v3;
+
+        public Triangle(Vertex v1, Vertex v2, Vertex v3) {
+            this._v1 = v1;
+            this._v2 = v2;
+            this._v3 = v3;
+        }
+    }
+
 	private class Edge{
 		private Vertex _first;
 		private Vertex _second;
@@ -321,6 +357,10 @@ public class A1Q3RyanReid implements GLEventListener {
 				return null;
 			}
 		}
+
+		private void removeVertex(Vertex vertex) {
+            _vertices.remove(vertex);
+        }
 
         private int size() {
 			return _vertices.size();
@@ -357,111 +397,207 @@ public class A1Q3RyanReid implements GLEventListener {
 		fillPolygon();
 		fillHoles();
 		drawRightPolygon(gl);
+        determinePolygonRotation();
         drawLeftPolygon(gl);
 	}
+
+	private void determinePolygonRotation() {
+        float crossProduct = 0;
+        for(int i = 0; i < polygon.size(); i++) {
+            crossProduct = crossProduct(polygon.getVertex(i % polygon.size()), polygon.getVertex((i + 1) % polygon.size()), polygon.getVertex((i + 2) % polygon.size()));
+        }
+
+        if(crossProduct > 0) {
+            polygon._clockwise = true;
+        } else {
+            polygon._clockwise = false;
+        }
+    }
 
 	private void drawLeftPolygon(GL2 gl) {
         for(int i = 0; i < holes.size(); i++) {
             getPolygonOrientation(holes.get(i));
         }
-
         getPolygonOrientation(polygon);
 
-        colourPointsInside(gl, 0);
-        outlinePolygons(gl, 0);
-        getEdges();
-
-        drawEdges(gl);
+        addEdges(gl);
+        fillTrianglesArray(gl);
     }
 
-    public void drawEdges(GL2 gl) {
+    private void addEdges(GL2 gl) {
+        boolean addedPoly = false;
+        for(int i = 0; i < holes.size() - EAR_CLIP_IGNORE_HOLES; i++) {
+            for(int j = 0; j < holes.get(i).size(); j++) {
+
+                for(int p = 0; p < polygon.size(); p++) {
+                    if(!edgeIntersects(holes.get(i).getVertex(j), polygon.getVertex(p))
+                        && !holeIntersect(holes.get(i).getVertex(j), polygon.getVertex(p))) {
+                        gl.glColor3f(0f, 0f, 0f);
+                        gl.glBegin(GL2.GL_LINES);
+                        gl.glVertex2f((holes.get(i).getVertex(j).getX()), (holes.get(i).getVertex(j).getY()));
+                        gl.glVertex2f((polygon.getVertex(p).getX()), (polygon.getVertex(p).getY()));
+
+
+                        if(holes.get(i)._clockwise) {
+                            addPolygonAtIndex(holes.get(i), (p + 1) % polygon.size(), false);
+                           // polygon._vertices.add(p + holes.get(i).size() + 1, polygon.getVertex(p));
+                        } else {
+                            addPolygonAtIndex(holes.get(i), (p + 1) % polygon.size(), false);
+                            //polygon._vertices.add(p + holes.get(i).size() + 1, polygon.getVertex(p));
+                        }
+
+                        addedPoly = true;
+                        break;
+                    }
+                }
+                if(addedPoly) {
+                    addedPoly = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    private void addPolygonAtIndex(Polygon poly, int index, boolean reversed) {
+        if(reversed) {
+            Vertex temp = poly._vertices.get(0);
+            poly._vertices.remove(0);
+            Collections.reverse(poly._vertices);
+            poly._vertices.add(0, temp);
+        }
+
+        if(index >= polygon.size()) {
+            polygon._vertices.addAll(poly._vertices);
+        } else {
+            polygon._vertices.addAll(index, poly._vertices);
+        }
+    }
+
+    private void drawTriangles(GL2 gl, Triangle triangle, int i) {
+        float color[] = COLOURS[i % COLOURS.length];
+        gl.glColor3f(color[0], color[1], color[2]);
+        gl.glBegin(GL.GL_TRIANGLES);
+        gl.glVertex2f(triangle.get_v1().getX(), triangle.get_v1().getY());
+        gl.glVertex2f(triangle.get_v2().getX(), triangle.get_v2().getY());
+        gl.glVertex2f(triangle.get_v3().getX(), triangle.get_v3().getY());
+        gl.glEnd();
+
         gl.glColor3f(0f, 0f, 0f);
         gl.glBegin(GL2.GL_LINES);
-        for(int i = 0; i < newEdges.size(); i++) {
-            gl.glVertex2f(newEdges.get(i).getFirst().getX() , newEdges.get(i).getFirst().getY());
-            gl.glVertex2f(newEdges.get(i).getSecond().getX(),  newEdges.get(i).getSecond().getY());
-        }
+        gl.glVertex2f(triangle.get_v1().getX(), triangle.get_v1().getY());
+        gl.glVertex2f(triangle.get_v2().getX(), triangle.get_v2().getY());
+        gl.glVertex2f(triangle.get_v3().getX(), triangle.get_v3().getY());
+        gl.glVertex2f(triangle.get_v1().getX(), triangle.get_v1().getY());
         gl.glEnd();
+
     }
 
-    public ArrayList<Edge> newEdges;
+    private void fillTrianglesArray(GL2 gl) {
+        int i = 0;
 
-    private void getEdges() {
-        newEdges = new ArrayList<>();
-        boolean intersects;
+        int attempts = 0;
+        int triangesColoured = 0;
+        while(polygon.size() >= 3) {
+            float crossProduct = crossProduct(polygon.getVertex(i % polygon.size()), polygon.getVertex((i + 1) % polygon.size()), polygon.getVertex((i + 2) % polygon.size()));
 
-        for(int holePolygon = 0; holePolygon < holes.size(); holePolygon++) {
-            for(int polyCornerToCheck = 0; polyCornerToCheck < holes.get(holePolygon).size(); polyCornerToCheck++) {
-                float x1 = holes.get(holePolygon).getVertex(polyCornerToCheck).getX();
-                float y1 = holes.get(holePolygon).getVertex(polyCornerToCheck).getY();
+            if(crossProduct <= 0) {
+                if(!edgeIntersects(polygon.getVertex(i % polygon.size()), polygon.getVertex((i + 2) % polygon.size()))) {
+                    Triangle triangle = new Triangle(polygon.getVertex(i % polygon.size()), polygon.getVertex((i + 1) % polygon.size()), polygon.getVertex((i + 2) % polygon.size()));
+                    drawTriangles(gl, triangle, (int) (triangesColoured * Math.random()));
+                    polygon.removeVertex(polygon.getVertex((i + 1) % polygon.size()));
+                    attempts = 0;
+                    triangesColoured++;
+                }
+            }
 
-                for(int polyVertexToCheck = 0; polyVertexToCheck < polygon.size(); polyVertexToCheck++) {
-                    float x2 = polygon.getVertex(polyVertexToCheck).getX();
-                    float y2 = polygon.getVertex(polyVertexToCheck).getY();
-                    intersects = false;
-                    //Compare against
-                    for(int polyEdgeToCompare = 0; polyEdgeToCompare < polygon.size() - 1; polyEdgeToCompare++) {
-                        float x3 = polygon.getVertex(polyEdgeToCompare).getX();
-                        float x4 = polygon.getVertex(polyEdgeToCompare + 1).getX();
-                        float y3 = polygon.getVertex(polyEdgeToCompare).getY();
-                        float y4 = polygon.getVertex(polyEdgeToCompare + 1).getY();
+            //Break because it isn't implemented properly. Stops infinite loop
+            if(attempts >= 50) {
+                break;
+            }
+            attempts++;
+            i++;
+        }
+    }
 
-                        if(polygon.getVertex(polyVertexToCheck).notEquals(polygon.getVertex(polyEdgeToCompare)) &&
-                            polygon.getVertex(polyVertexToCheck).notEquals(polygon.getVertex(polyEdgeToCompare + 1))) {
+    private boolean holeIntersect(Vertex v2, Vertex v3) {
+        boolean intersects = false;
+        float x1 = v2.getX();
+        float y1 = v2.getY();
+        float x2 = v3.getX();
+        float y2 = v3.getY();
 
-                            float num1 = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
-                            float num2 = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
-                            float den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+        for(int i = 0; i < holes.size() - EAR_CLIP_IGNORE_HOLES; i++) {
+            for(int j = 0; j < holes.get(i).size(); j++) {
+                if(holes.get(i).getVertex(j).notEquals(v2) && holes.get(i).getVertex(j).notEquals(v3)
+                && holes.get(i).getVertex((j + 1) % holes.get(i).size()).notEquals(v2) && holes.get(i).getVertex((j + 1) % holes.get(i).size()).notEquals(v3)) {
+                    float x3 = holes.get(i).getVertex(j).getX();
+                    float x4 = holes.get(i).getVertex((j + 1) % holes.get(i).size()).getX();
+                    float y3 = holes.get(i).getVertex(j).getY();
+                    float y4 = holes.get(i).getVertex((j + 1) % holes.get(i).size()).getY();
 
-                            if(den != 0.0f) {
-                                float ta, tb;
-                                ta = num1 / den;
-                                tb = num2 / den;
-                                if(ta > 0.0f && ta <= 1.0f && tb >= 0.0f && tb < 1.0f) {
-                                    intersects = true;
-                                    break;
-                                }
-                            }
+                    float ta = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
+                    float tb = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
+                    float denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
 
+                    if (denom != 0.0f) {
+                        ta = ta / denom;
+                        tb = tb / denom;
+                        if (ta > 0.0f && ta <= 1.0f && tb >= 0.0f && tb < 1.0f) {
+                            intersects = true;
+                            break;
                         }
                     }
+                }
+            }
+            if(intersects) {
+                break;
+            }
+        }
 
-                    if(!intersects) {
-                        for(int holePolyToCompare = 0; holePolyToCompare < holes.size(); holePolyToCompare++) {
-                            for(int holePolyEdgeToCompare = 0; holePolyEdgeToCompare < holes.get(holePolyToCompare).size() - 1; holePolyEdgeToCompare++) {
-                                float x3 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare).getX();
-                                float x4 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare + 1).getX();
-                                float y3 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare).getY();
-                                float y4 = holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare + 1).getY();
+        return intersects;
+    }
 
-                                if(holes.get(holePolygon).getVertex(polyCornerToCheck).notEquals(holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare))
-                                    &&holes.get(holePolygon).getVertex(polyCornerToCheck).notEquals(holes.get(holePolyToCompare).getVertex(holePolyEdgeToCompare + 1))) {
-                                    float num1 = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
-                                    float num2 = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
-                                    float den = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
+    private boolean edgeIntersects(Vertex v2, Vertex v3) {
+        boolean intersects = false;
+        float x1 = v2.getX();
+        float y1 = v2.getY();
+        float x2 = v3.getX();
+        float y2 = v3.getY();
 
-                                    if(den != 0.0f) {
-                                        float ta, tb;
-                                        ta = num1 / den;
-                                        tb = num2 / den;
-                                        if(ta > 0.0f && ta <= 1.0f && tb >= 0.0f && tb < 1.0f) {
-                                            intersects = true;
-                                            break;
-                                        }
-                                    }
+        for(int i = 0; i < polygon.size(); i++) {
+            if(polygon.getVertex(i).notEquals(v2) && polygon.getVertex(i).notEquals(v3)
+            && polygon.getVertex((i + 1) % polygon.size()).notEquals(v2) && polygon.getVertex((i + 1) % polygon.size()).notEquals(v3)) {
+                float x3 = polygon.getVertex(i).getX();
+                float x4 = polygon.getVertex((i + 1) % polygon.size()).getX();
+                float y3 = polygon.getVertex(i).getY();
+                float y4 = polygon.getVertex((i + 1) % polygon.size()).getY();
 
-                                }
-                            }
-                        }
-                    }
+                float ta = (x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3);
+                float tb = (x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3);
+                float denom = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
 
-
-                    if(!intersects) {
-                        newEdges.add(new Edge(holes.get(holePolygon).getVertex(polyCornerToCheck), polygon.getVertex(polyVertexToCheck)));
+                if (denom != 0.0f) {
+                    ta = ta / denom;
+                    tb = tb / denom;
+                    if (ta > 0.0f && ta <= 1.0f && tb >= 0.0f && tb < 1.0f) {
+                        intersects = true;
+                        break;
                     }
                 }
             }
         }
+
+        return intersects;
+    }
+
+    private float crossProduct(Vertex v1, Vertex v2, Vertex v3) {
+        float dx1 = v2._x - v1.getX();
+        float dy1 = v2._y - v1.getY();
+        float dx2 = v3._x - v2.getX();
+        float dy2 = v3._y - v2.getY();
+
+
+        return (dx1 * dy2) - (dy1 * dx2);
     }
 
     private void getPolygonOrientation(Polygon poly) {
@@ -473,10 +609,6 @@ public class A1Q3RyanReid implements GLEventListener {
         if(total >= 0) {
             poly._clockwise = true;
         }
-    }
-
-    private void addMutualEdges() {
-
     }
 
 	private Polygon polygon;
