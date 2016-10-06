@@ -408,7 +408,7 @@ public class A1Q3RyanReid implements GLEventListener {
         newOrder.add(new Vertex(poly.getVertex(firstVectorInHole % poly.size())));
         newOrder.add(new Vertex(polygon.getVertex(indexOfEdgeIntoPoly)));
 
-        if(index >= poly.size()) {
+        if(index >= polygon.size()) {
             polygon._vertices.addAll(newOrder);
         } else {
             polygon._vertices.addAll(index, newOrder);
