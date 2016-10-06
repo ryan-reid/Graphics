@@ -441,23 +441,15 @@ public class A1Q3RyanReid implements GLEventListener {
             for(int i = 1; i < polygon.size(); i++) {
                 float crossProduct = crossProduct(polygon.getVertex(i - 1), polygon.getVertex(i), polygon.getVertex((i + 1) % polygon.size()));
 
-                if(crossProduct < 0) {
+                if(crossProduct < 0.0f) {
                     if(!edgeIntersects(polygon.getVertex(i - 1), polygon.getVertex((i + 1) % polygon.size()))) {
                         Triangle triangle = new Triangle(polygon.getVertex(i - 1), polygon.getVertex((i)), polygon.getVertex((i + 1) % polygon.size()));
-                        //if(!pointInsideTriangle(triangle)) {
+                        if(!pointInsideTriangle(triangle)) {
                             drawTriangles(gl, triangle, earsColored);
-
-                            gl.glColor3f(1f, 1f, 1f);
-                            gl.glPointSize(3f);
-                            gl.glBegin(GL2.GL_POINTS);
-                            gl.glVertex2f(triangle._v2.getX(), triangle._v2.getY());
-                            gl.glEnd();
-                            gl.glPointSize(1f);
-
                             polygon._vertices.remove(triangle._v2);
                             earsColored++;
                             attempts = 0;
-                       // }
+                        }
                     }
                 }
             }
@@ -468,7 +460,7 @@ public class A1Q3RyanReid implements GLEventListener {
             attempts++;
         }
     }
-    
+
     private float sign(Vertex point1, Vertex point2, Vertex point3) {
             return ((point1.getX() - point3.getX()) * (point2.getY() - point3.getY())) - ((point2.getX() - point3.getX()) * (point1.getY() - point3.getY()));
     }
@@ -478,23 +470,17 @@ public class A1Q3RyanReid implements GLEventListener {
         boolean pointInside = false;
 
         for(int i = 0; i < polygon.size(); i++) {
-            if(polygon.getVertex(i).notEquals(triangle.get_v1())
-            && polygon.getVertex(i).notEquals(triangle.get_v2())
-            && polygon.getVertex(i).notEquals(triangle.get_v3())) {
+            point = polygon.getVertex(i);
 
-                point = polygon.getVertex(i);
-                boolean signV1 = sign(point, triangle.get_v1(), triangle.get_v2()) < 0.0f;
-                boolean signV2 = sign(point, triangle.get_v2(), triangle.get_v3()) < 0.0f;
-                boolean signV3 = sign(point, triangle.get_v3(), triangle.get_v1()) < 0.0f;
+            boolean signV1 = sign(point, triangle.get_v1(), triangle.get_v2()) < 0.0f;
+            boolean signV2 = sign(point, triangle.get_v2(), triangle.get_v3()) < 0.0f;
+            boolean signV3 = sign(point, triangle.get_v3(), triangle.get_v1()) < 0.0f;
 
-                if(((signV1 == signV2) && (signV2 == signV3))) {
-                    pointInside = true;
-                    break;
-                }
+            if(((signV1 == signV2) && (signV2 == signV3))) {
+                pointInside = true;
+                break;
             }
-
         }
-
 
         return pointInside;
     }
