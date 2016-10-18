@@ -273,12 +273,12 @@ public class A2Q1Skeleton implements GLEventListener {
         }
 
         structures.forEach( structure ->  drawSceneOne(gl, structure));
-       // structures.forEach( structure ->  drawSceneTwo(gl, structure));
+        structures.forEach( structure ->  drawSceneTwo(gl, structure));
         structures.forEach( structure ->  drawSceneThree(gl, structure));
         structures.forEach( structure ->  drawSceneFour(gl, structure));
-        //structures.forEach( structure ->  drawSceneFix(gl, structure));
-        //structures.forEach( structure ->  drawSceneSix(gl, structure));
-        //structures.forEach( structure ->  drawSceneSeven(gl, structure));
+        structures.forEach( structure ->  drawSceneFix(gl, structure));
+        structures.forEach( structure ->  drawSceneSix(gl, structure));
+        structures.forEach( structure ->  drawSceneSeven(gl, structure));
         //structures.forEach( structure ->  drawSceneEight(gl, structure));
 	}
 
@@ -320,9 +320,11 @@ public class A2Q1Skeleton implements GLEventListener {
         for(int i = 0; i < structure._matrices.size(); i++) {
             float[] colour = structure._colour.get(i);
             float[][] vertices = structure._matrices.get(i);
+
             float[][] scale = scaleMatrix((width / 8), (height / 8));
-            float[][] translation = translationMatrix(width / 8, (height - (height / 8)));
             float[][] transformedVertices = transformAllPoints(scale, vertices);
+
+            float[][] translation = translationMatrix(width / 8, (height - (height / 8)));
             transformedVertices = transformAllPoints(translation, transformedVertices);
 
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
@@ -343,11 +345,15 @@ public class A2Q1Skeleton implements GLEventListener {
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
             gl.glBegin(GL2.GL_TRIANGLES);
 
+            float[][] rotate = rotateMatrix((float) Math.PI / 6);
+            float[][] transformedVertices = transformAllPoints(rotate, vertices);
+
             float[][] scale = scaleMatrix((width / 8), height / 8);
-            float[][] translate = translationMatrix(3 * (width / 8), (height - (height / 8)));
-            //float[][] transformed = multiply(translate, scale);
-            float[][] transformedVertices = transformAllPoints(translate, vertices);
             transformedVertices = transformAllPoints(scale, transformedVertices);
+
+            float[][] translate = translationMatrix(3 * (width / 8), (height - (height / 8)));
+            transformedVertices = transformAllPoints(translate, transformedVertices);
+
 
             gl.glVertex2f(transformedVertices[0][0], (transformedVertices[1][0]));
             gl.glVertex2f(transformedVertices[0][1], (transformedVertices[1][1]));
@@ -361,16 +367,13 @@ public class A2Q1Skeleton implements GLEventListener {
             float[] colour = structure._colour.get(i);
             float[][] vertices = structure._matrices.get(i);
 
-            float[][] scale = scaleMatrix((width / 8), (height / 8));
+            float[][] scale = scaleMatrix(.75f, 1.25f);
             float[][] transformedVertices = transformAllPoints(scale, vertices);
 
+             scale = scaleMatrix((width / 8), (height / 8));
+             transformedVertices = transformAllPoints(scale, transformedVertices);
+
             float[][] translation = translationMatrix(width / 8, (height - (3 * (height / 8))));
-            transformedVertices = transformAllPoints(translation, transformedVertices);
-
-            scale = scaleMatrix(.75f, 1.25f);
-            transformedVertices = transformAllPoints(scale, transformedVertices);
-
-            translation = translationMatrix((width / 8) * .25f, (height - (3 * (height / 8))) * -.25f);
             transformedVertices = transformAllPoints(translation, transformedVertices);
 
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
@@ -387,16 +390,19 @@ public class A2Q1Skeleton implements GLEventListener {
             float[] colour = structure._colour.get(i);
             float[][] vertices = structure._matrices.get(i);
 
-            float[][] scale = scaleMatrix((width / 8), (height / 8));
-            float[][] transformedVertices = transformAllPoints(scale, vertices);
+            float[][] translation = translationMatrix(-structure._center[0], -structure._center[1]);
+            float[][] transformedVertices = transformAllPoints(translation, vertices);
 
-            float[][] translation = translationMatrix(3 * (width / 8), (height - (3 * (height / 8))));
-            transformedVertices = transformAllPoints(translation, transformedVertices);
-
-            scale = scaleMatrix(.60f, .60f);
+            float[][] scale = scaleMatrix(.60f, .60f);
             transformedVertices = transformAllPoints(scale, transformedVertices);
 
-            translation = translationMatrix(( 3 * (width / 8)) * .4f, (height - (3 * (height / 8))) * .4f);
+            translation = translationMatrix(structure._center[0], structure._center[1]);
+            transformedVertices = transformAllPoints(translation, transformedVertices);
+
+            scale = scaleMatrix((width / 8), (height / 8));
+            transformedVertices = transformAllPoints(scale, transformedVertices);
+
+            translation = translationMatrix(3 * (width / 8), (height - (3 * (height / 8))));
             transformedVertices = transformAllPoints(translation, transformedVertices);
 
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
@@ -412,12 +418,35 @@ public class A2Q1Skeleton implements GLEventListener {
         for(int i = 0; i < structure._matrices.size(); i++) {
             float[] colour = structure._colour.get(i);
             float[][] vertices = structure._matrices.get(i);
+            float[] center;
 
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
             gl.glBegin(GL2.GL_TRIANGLES);
-            gl.glVertex2f((vertices[0][0]* (width / 8)) + (width / 8), (vertices[1][0]* (height / 8))+ (3 * (height / 8)));
-            gl.glVertex2f((vertices[0][1]* (width / 8)) + (width / 8), (vertices[1][1]* (height / 8))+ (3 * (height / 8)));
-            gl.glVertex2f((vertices[0][2]* (width / 8)) + (width / 8), (vertices[1][2]* (height / 8))+ (3 * (height / 8)));
+
+            if(structure._objectID == ObjectName.HOUSE.i
+            || structure._objectID == ObjectName.ROOF.i) {
+                center = centres[ObjectName.HOUSE.i];
+            } else {
+                center = centres[ObjectName.TRUNK.i];
+            }
+
+            float[][] translate = translationMatrix(center[0], center[1]);
+            float[][] rotate = rotateMatrix(-(float) Math.PI / 8);
+            float[][] transformedVertices = multiply(translate, rotate);
+            translate = translationMatrix(-center[0], -center[1]);
+            transformedVertices = multiply(transformedVertices, translate);
+
+            transformedVertices = transformAllPoints(transformedVertices, vertices);
+
+            float[][] scale = scaleMatrix((width / 8), height / 8);
+            transformedVertices = transformAllPoints(scale, transformedVertices);
+
+            translate = translationMatrix((width / 8), (3 * (height / 8)));
+            transformedVertices = transformAllPoints(translate, transformedVertices);
+
+            gl.glVertex2f(transformedVertices[0][0], (transformedVertices[1][0]));
+            gl.glVertex2f(transformedVertices[0][1], (transformedVertices[1][1]));
+            gl.glVertex2f(transformedVertices[0][2], (transformedVertices[1][2]));
             gl.glEnd();
         }
     }
@@ -426,12 +455,39 @@ public class A2Q1Skeleton implements GLEventListener {
         for(int i = 0; i < structure._matrices.size(); i++) {
             float[] colour = structure._colour.get(i);
             float[][] vertices = structure._matrices.get(i);
+            float[] center;
+            float newX;
 
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
             gl.glBegin(GL2.GL_TRIANGLES);
-            gl.glVertex2f((vertices[0][0]* (width / 8)) + ( 3 * (width / 8)), (vertices[1][0]* (height / 8))+ (3 * (height / 8)));
-            gl.glVertex2f((vertices[0][1]* (width / 8)) + ( 3 * (width / 8)), (vertices[1][1]* (height / 8))+ (3 * (height / 8)));
-            gl.glVertex2f((vertices[0][2]* (width / 8)) + ( 3 * (width / 8)), (vertices[1][2]* (height / 8))+ (3 * (height / 8)));
+
+            if(structure._objectID == ObjectName.HOUSE.i
+            || structure._objectID == ObjectName.ROOF.i) {
+                center = centres[ObjectName.HOUSE.i];
+                newX = centres[ObjectName.TRUNK.i][0];
+            } else {
+                center = centres[ObjectName.TRUNK.i];
+                newX = centres[ObjectName.HOUSE.i][0];
+            }
+
+            float[][] translateX = translationMatrix(newX - center[0], 0);
+            float[][] transformedVertices = transformAllPoints(translateX, vertices);
+
+            if(structure._objectID == ObjectName.FLOWER.i) {
+                newX = 2 * (centres[ObjectName.TRUNK.i][0] - centres[ObjectName.FLOWER.i][0]);
+                translateX = translationMatrix(newX, 0);
+                transformedVertices = transformAllPoints(translateX, transformedVertices);
+            }
+
+            float[][] scale = scaleMatrix((width / 8), height / 8);
+            transformedVertices = transformAllPoints(scale, transformedVertices);
+
+            float[][] translate = translationMatrix(3 * (width / 8), (3 * (height / 8)));
+            transformedVertices = transformAllPoints(translate, transformedVertices);
+
+            gl.glVertex2f(transformedVertices[0][0], (transformedVertices[1][0]));
+            gl.glVertex2f(transformedVertices[0][1], (transformedVertices[1][1]));
+            gl.glVertex2f(transformedVertices[0][2], (transformedVertices[1][2]));
             gl.glEnd();
         }
     }
@@ -564,12 +620,14 @@ public class A2Q1Skeleton implements GLEventListener {
         ArrayList<float[][]> _transformedMatrices;
         ArrayList<float[]> _colour;
         float[] _center;
+        int _objectID;
 
         private DrawableStructure(int objectIndex) {
             _matrices = new ArrayList<>();
             _transformedMatrices = new ArrayList<>();
             _colour = new ArrayList<>();
             _center = centres[objectIndex];
+            _objectID = objectIndex;
         }
 
         private void addMatrix(float[][] matrix) {
