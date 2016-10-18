@@ -279,7 +279,7 @@ public class A2Q1Skeleton implements GLEventListener {
         structures.forEach( structure ->  drawSceneFix(gl, structure));
         structures.forEach( structure ->  drawSceneSix(gl, structure));
         structures.forEach( structure ->  drawSceneSeven(gl, structure));
-        //structures.forEach( structure ->  drawSceneEight(gl, structure));
+        structures.forEach( structure ->  drawSceneEight(gl, structure));
 	}
 
     private float[][] transformAllPoints(float[][] transformation, float[][] points) {
@@ -565,16 +565,65 @@ public class A2Q1Skeleton implements GLEventListener {
     }
 
     private void drawSceneEight(GL2 gl, DrawableStructure structure) {
+        int count = 1;
         for(int i = 0; i < structure._matrices.size(); i++) {
             float[] colour = structure._colour.get(i);
             float[][] vertices = structure._matrices.get(i);
+            float[][] transformedVertices;
+            float[][] translate;
+            float[][] trans2;
+            float[][] scale;
+            float newX = 0;
+            float newY = 0;
+
+            if(structure._objectID == ObjectName.HOUSE.i || structure._objectID == ObjectName.ROOF.i) {
+                break;
+            } else if(structure._objectID == ObjectName.TRUNK.i || structure._objectID == ObjectName.FLOWER.i) {
+                if(structure._objectID == ObjectName.FLOWER.i) {
+                    newX = (centres[ObjectName.TRUNK.i][0] - centres[ObjectName.FLOWER.i][0]);
+                    newY = (centres[ObjectName.TRUNK.i][1] - centres[ObjectName.FLOWER.i][1]);
+                }
+                translate = translationMatrix(0 - structure._center[0] - newX, 0 - structure._center[1] - newY);
+                trans2 = translationMatrix(structure._center[0], structure._center[1]);
+                transformedVertices = multiply(translate, trans2);
+                translate = translationMatrix(-structure._center[0], -structure._center[1]);
+                transformedVertices = multiply(translate, transformedVertices);
+
+                transformedVertices = transformAllPoints(transformedVertices, vertices);
+            } else {
+                translate = translationMatrix(0 - structure._center[0], 0 - structure._center[1] + 2);
+                float[][] rotate = rotateMatrix(((float)Math.PI / 6) * count);
+                transformedVertices = multiply(rotate, translate);
+
+                scale = scaleMatrix(0.5f, 0.5f);
+                transformedVertices = multiply(scale, transformedVertices);
+
+                transformedVertices = transformAllPoints(transformedVertices, vertices);
+            }
+
+            scale = scaleMatrix((width / 8), height / 8);
+            transformedVertices = transformAllPoints(scale, transformedVertices);
+
+            translate = translationMatrix(3 * (width / 8), (height / 8));
+            transformedVertices = transformAllPoints(translate, transformedVertices);
 
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
             gl.glBegin(GL2.GL_TRIANGLES);
-            gl.glVertex2f((vertices[0][0]* (width / 8)) + ( 3 * (width / 8)), (vertices[1][0]* (height / 8))+ (height / 8));
-            gl.glVertex2f((vertices[0][1]* (width / 8)) + ( 3 * (width / 8)), (vertices[1][1]* (height / 8))+ (height / 8));
-            gl.glVertex2f((vertices[0][2]* (width / 8)) + ( 3 * (width / 8)), (vertices[1][2]* (height / 8))+ (height / 8));
+            gl.glVertex2f(transformedVertices[0][0], transformedVertices[1][0]);
+            gl.glVertex2f(transformedVertices[0][1], transformedVertices[1][1]);
+            gl.glVertex2f(transformedVertices[0][2], transformedVertices[1][2]);
             gl.glEnd();
+
+
+            if(structure._objectID == ObjectName.LEAVES.i) {
+                if(i + 1 == structure._matrices.size()) {
+                    count++;
+                    i = 0;
+                }
+                if(count == 13) {
+                    break;
+                }
+            }
         }
     }
 
