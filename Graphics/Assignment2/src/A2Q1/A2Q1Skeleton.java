@@ -316,6 +316,14 @@ public class A2Q1Skeleton implements GLEventListener {
         return new float[][] { {1, 0, transX}, {0, 1, transY}, {0, 0, 1}};
     }
 
+    private float[][] reflectMatrix(float reflectX, float reflectY) {
+        return new float[][] {{reflectX, 0, 0}, {0, reflectY, 0}, {0, 0, 1}};
+    }
+
+    private float[][] shearMatrix(float shearAmount) {
+        return new float[][] {{1, shearAmount, 0}, {0, 1, 0}, {0, 0 ,1}};
+    }
+
     private void drawSceneOne(GL2 gl, DrawableStructure structure) {
         for(int i = 0; i < structure._matrices.size(); i++) {
             float[] colour = structure._colour.get(i);
@@ -496,12 +504,62 @@ public class A2Q1Skeleton implements GLEventListener {
         for(int i = 0; i < structure._matrices.size(); i++) {
             float[] colour = structure._colour.get(i);
             float[][] vertices = structure._matrices.get(i);
+            float[][] transformedVertices = vertices;
+            float[][] translate;
+            float[][] rotate;
 
             gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
             gl.glBegin(GL2.GL_TRIANGLES);
-            gl.glVertex2f((vertices[0][0]* (width / 8)) + (width / 8), (vertices[1][0]* (height / 8))+ (height / 8));
-            gl.glVertex2f((vertices[0][1]* (width / 8)) + (width / 8), (vertices[1][1]* (height / 8))+ (height / 8));
-            gl.glVertex2f((vertices[0][2]* (width / 8)) + (width / 8), (vertices[1][2]* (height / 8))+ (height / 8));
+
+            if(structure._objectID == ObjectName.HOUSE.i) {
+                float[][] shear = shearMatrix(-.50f);
+                transformedVertices = transformAllPoints(shear, vertices);
+
+            } else if(structure._objectID == ObjectName.ROOF.i) {
+                translate = translationMatrix(centres[ObjectName.ROOF.i][0], centres[ObjectName.ROOF.i][1]);
+                float[][] translate2 = translationMatrix(0f, 0.5f);
+                transformedVertices = multiply(translate, translate2);
+                rotate = rotateMatrix((float)Math.PI / 12);
+                transformedVertices = multiply(transformedVertices, rotate);
+                translate = translationMatrix(-centres[ObjectName.ROOF.i][0], -centres[ObjectName.ROOF.i][1]);
+                transformedVertices = multiply(transformedVertices, translate);
+                transformedVertices = transformAllPoints(transformedVertices, vertices);
+
+            } else if(structure._objectID == ObjectName.FLOWER.i) {
+                translate = translationMatrix(centres[ObjectName.FLOWER.i][0], centres[ObjectName.FLOWER.i][1]);
+                float[][] reflect = reflectMatrix(1f, -1f);
+                transformedVertices = multiply(translate, reflect);
+
+                translate = translationMatrix(-centres[ObjectName.FLOWER.i][0], centres[ObjectName.FLOWER.i][1]);
+                transformedVertices = multiply(translate, transformedVertices);
+
+                transformedVertices = transformAllPoints(transformedVertices, vertices);
+            } else if(structure._objectID == ObjectName.LEAVES.i) {
+                float[] center = new float[2];
+                center[0] = (vertices[0][0] + vertices[0][1] + vertices[0][2]) / 3;
+                center[1] = (vertices[1][0] + vertices[1][1] + vertices[1][2]) / 3;
+
+                translate = translationMatrix(centres[ObjectName.LEAVES.i][0], centres[ObjectName.LEAVES.i][1]);
+                float[][] translateNewCenter = translationMatrix(center[0] - centres[ObjectName.LEAVES.i][0], center[1] - centres[ObjectName.LEAVES.i][1]);
+                transformedVertices = multiply(translate, translateNewCenter);
+
+                translate = translationMatrix(-centres[ObjectName.LEAVES.i][0], -centres[ObjectName.LEAVES.i][1]);
+                transformedVertices = multiply(translate, transformedVertices);
+
+                transformedVertices = transformAllPoints(transformedVertices, vertices);
+            }
+
+            float[][] scale = scaleMatrix((width / 8), height / 8);
+            transformedVertices = transformAllPoints(scale, transformedVertices);
+
+            translate = translationMatrix((width / 8), (height / 8));
+            transformedVertices = transformAllPoints(translate, transformedVertices);
+
+            gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
+            gl.glBegin(GL2.GL_TRIANGLES);
+            gl.glVertex2f(transformedVertices[0][0], transformedVertices[1][0]);
+            gl.glVertex2f(transformedVertices[0][1], transformedVertices[1][1]);
+            gl.glVertex2f(transformedVertices[0][2], transformedVertices[1][2]);
             gl.glEnd();
         }
     }
