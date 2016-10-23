@@ -248,7 +248,7 @@ public class A2Q1Skeleton implements GLEventListener {
 
         drawBoxes(gl);
 		drawLeftSide(gl);
-		//drawRightSide(gl);
+		drawRightSide(gl);
 	}
 
 
@@ -665,7 +665,279 @@ public class A2Q1Skeleton implements GLEventListener {
     }
 	
 	public void drawRightSide(GL2 gl) {
+        for(int i = 0; i < 1; i++) {
+            addAllStructures();
+        }
+
+        structures.forEach( structure ->  rightSideDrawSceneOne(gl, structure));
+        structures.forEach( structure ->  rightSideDrawSceneTwo(gl, structure));
+        structures.forEach( structure ->  rightSideDrawSceneThree(gl, structure));
+        structures.forEach( structure ->  rightSideDrawSceneFour(gl, structure));
+        structures.forEach( structure ->  rightSideDrawSceneFix(gl, structure));
+        structures.forEach( structure ->  rightSideDrawSceneSix(gl, structure));
+        structures.forEach( structure ->  rightSideDrawSceneSeven(gl, structure));
+        structures.forEach( structure ->  rightSideDrawSceneEight(gl, structure));
 	}
+
+    private void rightSideDrawSceneOne(GL2 gl, DrawableStructure structure) {
+        gl.glMatrixMode(GL2.GL_MODELVIEW);
+
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+
+            gl.glLoadIdentity();
+            gl.glColor3f(colour[0], colour[1], colour[2]);
+
+            gl.glTranslatef(width - (3 * (width / 8)), (height - (height / 8)), 0);
+            gl.glScalef((width / 8), (height / 8), 0);
+
+            gl.glBegin(GL.GL_TRIANGLES);
+            gl.glVertex2f(vertices[0][0], vertices[1][0]);
+            gl.glVertex2f(vertices[0][1], vertices[1][1]);
+            gl.glVertex2f(vertices[0][2], vertices[1][2]);
+            gl.glEnd();
+        }
+        gl.glLoadIdentity();
+    }
+
+    private void rightSideDrawSceneTwo(GL2 gl, DrawableStructure structure) {
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+
+            gl.glLoadIdentity();
+
+            gl.glTranslatef(width - (width / 8), (height - (height / 8)), 0);
+            gl.glScalef(width/8, height/8, 1);
+            gl.glRotatef(30f, 0, 0, 1);
+
+            gl.glBegin(GL.GL_TRIANGLES);
+            gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
+            gl.glVertex2f(vertices[0][0], vertices[1][0]);
+            gl.glVertex2f(vertices[0][1], vertices[1][1]);
+            gl.glVertex2f(vertices[0][2], vertices[1][2]);
+            gl.glEnd();
+        }
+
+        gl.glLoadIdentity();
+    }
+
+    private void rightSideDrawSceneThree(GL2 gl, DrawableStructure structure) {
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+
+            gl.glLoadIdentity();
+            gl.glColor3f(colour[0], colour[1], colour[2]);
+
+            gl.glTranslatef(width - (3 * (width / 8)), (height - (3 * (height / 8))), 0);
+            gl.glScalef(width/8, height / 8, 1f);
+            gl.glScalef(.75f, 1.25f, 0);
+
+            gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
+            gl.glBegin(GL2.GL_TRIANGLES);
+            gl.glVertex2f(vertices[0][0], (vertices[1][0]));
+            gl.glVertex2f(vertices[0][1], (vertices[1][1]));
+            gl.glVertex2f(vertices[0][2], (vertices[1][2]));
+            gl.glEnd();
+        }
+
+        gl.glLoadIdentity();
+    }
+
+    private void rightSideDrawSceneFour(GL2 gl, DrawableStructure structure) {
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+
+            gl.glLoadIdentity();
+            gl.glColor3f(colour[0], colour[1], colour[2]);
+
+            gl.glTranslatef(width - (width / 8), (height - (3 * (height / 8))), 0);
+            gl.glScalef(width/8, height / 8, 1f);
+            gl.glTranslatef(structure._center[0], structure._center[1], 0);
+            gl.glScalef(.6f, .6f, 0);
+            gl.glTranslatef(-structure._center[0], -structure._center[1], 0);
+
+            gl.glBegin(GL2.GL_TRIANGLES);
+            gl.glVertex2f(vertices[0][0], (vertices[1][0]));
+            gl.glVertex2f(vertices[0][1], (vertices[1][1]));
+            gl.glVertex2f(vertices[0][2], (vertices[1][2]));
+            gl.glEnd();
+        }
+
+        gl.glLoadIdentity();
+    }
+
+    private void rightSideDrawSceneFix(GL2 gl, DrawableStructure structure) {
+
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+            float[] center;
+
+            gl.glLoadIdentity();
+            gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
+
+            if(structure._objectID == ObjectName.HOUSE.i
+                    || structure._objectID == ObjectName.ROOF.i) {
+                center = centres[ObjectName.HOUSE.i];
+            } else {
+                center = centres[ObjectName.TRUNK.i];
+            }
+
+            gl.glTranslatef(width - (3 * (width / 8)), (3 * (height / 8)), 0);
+            gl.glScalef(width/8, height / 8, 1f);
+            gl.glTranslatef(center[0], center[1], 0);
+            gl.glRotatef(-22.5f, 0f, 0f, 1f);
+            gl.glTranslatef(-center[0], -center[1], 0);
+
+            gl.glBegin(GL2.GL_TRIANGLES);
+            gl.glVertex2f(vertices[0][0], (vertices[1][0]));
+            gl.glVertex2f(vertices[0][1], (vertices[1][1]));
+            gl.glVertex2f(vertices[0][2], (vertices[1][2]));
+            gl.glEnd();
+        }
+
+        gl.glLoadIdentity();
+    }
+
+    private void rightSideDrawSceneSix(GL2 gl, DrawableStructure structure) {
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+            float[] center;
+            float newX;
+
+            gl.glLoadIdentity();
+
+            if(structure._objectID == ObjectName.HOUSE.i
+                    || structure._objectID == ObjectName.ROOF.i) {
+                center = centres[ObjectName.HOUSE.i];
+                newX = centres[ObjectName.TRUNK.i][0];
+            } else {
+                center = centres[ObjectName.TRUNK.i];
+                newX = centres[ObjectName.HOUSE.i][0];
+            }
+
+            gl.glTranslatef(width - (width / 8), (3 * (height / 8)), 0);
+            gl.glScalef(width/8, height / 8, 1f);
+
+            gl.glTranslatef(newX - center[0], 0, 0);
+
+            if(structure._objectID == ObjectName.FLOWER.i) {
+                newX = 2 * (centres[ObjectName.TRUNK.i][0] - centres[ObjectName.FLOWER.i][0]);
+                gl.glTranslatef(newX, 0, 0);
+            }
+
+            gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
+            gl.glBegin(GL2.GL_TRIANGLES);
+            gl.glVertex2f(vertices[0][0], (vertices[1][0]));
+            gl.glVertex2f(vertices[0][1], (vertices[1][1]));
+            gl.glVertex2f(vertices[0][2], (vertices[1][2]));
+            gl.glEnd();
+        }
+
+        gl.glLoadIdentity();
+    }
+
+    private void rightSideDrawSceneSeven(GL2 gl, DrawableStructure structure) {
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+
+            gl.glLoadIdentity();
+            gl.glTranslatef(width - (3 * (width / 8)), (height / 8), 0);
+            gl.glScalef(width/8, height / 8, 1f);
+
+            if(structure._objectID == ObjectName.HOUSE.i) {
+                float[] shear = {1, 0, 0, 0, -.5f, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+                gl.glMultMatrixf(shear, 0);
+
+            } else if(structure._objectID == ObjectName.ROOF.i) {
+                gl.glTranslatef(centres[ObjectName.ROOF.i][0], centres[ObjectName.ROOF.i][1], 0);
+                gl.glTranslatef(0f, .5f, 0f);
+                gl.glRotatef(15, 0, 0, 1);
+                gl.glTranslatef(-centres[ObjectName.ROOF.i][0], -centres[ObjectName.ROOF.i][1], 0);
+
+            } else if(structure._objectID == ObjectName.FLOWER.i) {
+                gl.glTranslatef(centres[ObjectName.FLOWER.i][0], centres[ObjectName.FLOWER.i][1], 0);
+                gl.glScalef(1f, -1f, 0f);
+                gl.glTranslatef(-centres[ObjectName.FLOWER.i][0], -centres[ObjectName.FLOWER.i][1], 0);
+            } else if(structure._objectID == ObjectName.LEAVES.i) {
+                float[] center = new float[2];
+                center[0] = (vertices[0][0] + vertices[0][1] + vertices[0][2]) / 3;
+                center[1] = (vertices[1][0] + vertices[1][1] + vertices[1][2]) / 3;
+
+                gl.glTranslatef(centres[ObjectName.LEAVES.i][0], centres[ObjectName.LEAVES.i][1], 0);
+                gl.glTranslatef(center[0] - centres[ObjectName.LEAVES.i][0], center[1] - centres[ObjectName.LEAVES.i][1], 0);
+                gl.glTranslatef(-centres[ObjectName.LEAVES.i][0], -centres[ObjectName.LEAVES.i][1], 0);
+            }
+
+            gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
+            gl.glBegin(GL2.GL_TRIANGLES);
+            gl.glVertex2f(vertices[0][0], (vertices[1][0]));
+            gl.glVertex2f(vertices[0][1], (vertices[1][1]));
+            gl.glVertex2f(vertices[0][2], (vertices[1][2]));
+            gl.glEnd();
+        }
+
+        gl.glLoadIdentity();
+    }
+
+    private void rightSideDrawSceneEight(GL2 gl, DrawableStructure structure) {
+        int count = 1;
+        for(int i = 0; i < structure._matrices.size(); i++) {
+            float[] colour = structure._colour.get(i);
+            float[][] vertices = structure._matrices.get(i);
+            float newX = 0;
+            float newY = 0;
+
+            gl.glLoadIdentity();
+            gl.glTranslatef(width - (width / 8), (height / 8), 0);
+            gl.glScalef(width / 8, height / 8, 1f);
+
+            if(structure._objectID == ObjectName.HOUSE.i || structure._objectID == ObjectName.ROOF.i) {
+                break;
+            } else if(structure._objectID == ObjectName.TRUNK.i || structure._objectID == ObjectName.FLOWER.i) {
+                if(structure._objectID == ObjectName.FLOWER.i) {
+                    newX = (centres[ObjectName.TRUNK.i][0] - centres[ObjectName.FLOWER.i][0]);
+                    newY = (centres[ObjectName.TRUNK.i][1] - centres[ObjectName.FLOWER.i][1]);
+                }
+
+                gl.glTranslatef(structure._center[0], structure._center[1], 0);
+                gl.glTranslatef((0 - structure._center[0] - newX), 0 - structure._center[1] - newY, 0f);
+                gl.glTranslatef(-structure._center[0], -structure._center[1], 0);
+
+            } else {
+                gl.glScalef(.5f, .5f, 0f);
+                gl.glRotatef(-30 * count, 0, 0, 1);
+                gl.glTranslatef(0 - structure._center[0], 0 - structure._center[1] + 2, 0);
+            }
+
+            gl.glColor3f(colour[RED], colour[GREEN], colour[BLUE]);
+            gl.glBegin(GL2.GL_TRIANGLES);
+            gl.glVertex2f(vertices[0][0], (vertices[1][0]));
+            gl.glVertex2f(vertices[0][1], (vertices[1][1]));
+            gl.glVertex2f(vertices[0][2], (vertices[1][2]));
+            gl.glEnd();
+
+
+            if(structure._objectID == ObjectName.LEAVES.i) {
+                if(i + 1 == structure._matrices.size()) {
+                    count++;
+                    i = 0;
+                    gl.glLoadIdentity();
+                }
+                if(count == 13) {
+                    break;
+                }
+            }
+        }
+        gl.glLoadIdentity();
+    }
+
 
 	private float[][] transformPoints(float[][] transformation, float[][] point) {
         float[][] result = new float[3][1];
