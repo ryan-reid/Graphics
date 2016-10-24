@@ -938,7 +938,6 @@ public class A2Q1Skeleton implements GLEventListener {
         gl.glLoadIdentity();
     }
 
-
 	private float[][] transformPoints(float[][] transformation, float[][] point) {
         float[][] result = new float[3][1];
 
