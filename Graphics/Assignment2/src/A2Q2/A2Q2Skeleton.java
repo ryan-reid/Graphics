@@ -26,6 +26,7 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
     public static int mouseY;
     public static boolean mousePressed;
     public static boolean mouseHasBeenDragged;
+    public static boolean ObjectCloned;
 
 	// Name of the input file path and scene file
 	public static final String INPUT_PATH_NAME = "resources/";
@@ -122,6 +123,14 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
         drawModels(gl);
 	}
 
+    private double dot(float x1, float x2, float y1, float y2) {
+        return (x1 * x2) + (y1 * y2);
+    }
+
+    private double cross(float x1, float x2, float y1, float y2) {
+        return (x1 * y2) - (y1 * x2);
+    }
+
 	private void moveSelectedObject() {
         Model selected = getSelected();
 
@@ -136,18 +145,10 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
                 selected.oldMouseX = mouseX;
 
             } else if(selected.rotateSelected) {
-                float adjacent = (float) Math.sqrt( Math.pow(selected.oldMouseX - ( (selected.minX + selected.maxX) / 2), 2) + Math.pow(selected.oldMouseY - ( (selected.minY + selected.maxY) / 2), 2));
-                float hypot = (float) Math.sqrt(Math.pow(mouseX - ( (selected.minX + selected.maxX) / 2), 2) + Math.pow(mouseY - ( (selected.minY + selected.maxY) / 2), 2));
 
-                if(hypot == 0) {
-                    hypot = 1;
-                }
+                float angle = (float) (Math.atan2(cross(mouseX, selected.oldMouseX, mouseY, selected.oldMouseY), dot(mouseX, selected.oldMouseX, mouseY, selected.oldMouseY)) * 180 / Math.PI);
 
-                float angle = (float) Math.cos(adjacent / hypot);
-
-                if(selected.rotation % 90 >= 80) {
-                    angle += (90 - (selected.rotation % 90));
-                }
+                System.out.println("angle: " + angle);
 
                 selected.rotation += angle;
 
@@ -178,40 +179,51 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
 
 	private void grabObject(GL2 gl) {
         gl.glDrawBuffer(GL2.GL_BACK);
+        Model modelMatch = null;
 
-        models.forEach(model -> {
-            for (int i = 0; i < model.totalShapes(); i++) {
-                gl.glLoadIdentity();
-                int[] faces = model._shapes.get(i);
-                ArrayList<float[][]> vertices = new ArrayList<>();
-
-                for (int j = 0; j < faces.length; j++) {
-                    vertices.add(model.getVertex(faces[j] - 1));
+        if(ObjectCloned) {
+            for(int i = 0; i < models.size(); i++) {
+                if(models.get(i).selected) {
+                    modelMatch = models.get(i);
+                    break;
                 }
-
-                gl.glTranslatef(model.translateX, model.translateY, 0f);
-                gl.glScalef(model.scaleX, model.scaleY, 1);
-                gl.glRotatef(model.rotation, 0, 0, 1);
-
-                gl.glBegin(GL2.GL_POLYGON);
-                gl.glColor3f(model.color[0], model.color[1], model.color[2]);
-                for (int j = 0; j < vertices.size(); j++) {
-                    gl.glVertex2f(vertices.get(j)[0][0], vertices.get(j)[1][0]);
-                }
-
-                gl.glEnd();
-
-                model._resize.drawControlHandle(gl, model, new float[] {model._resize.color.getRed() / 255f, model._resize.color.getGreen() / 255f, model._resize.color.getBlue() / 255f});
-                model._rotate.drawControlHandle(gl, model, new float[] {model._rotate.color.getRed() / 255f, model._rotate.color.getGreen() / 255f, model._rotate.color.getBlue() / 255f});
             }
-        });
+            ObjectCloned = false;
+        } else {
+            models.forEach(model -> {
+                for (int i = 0; i < model.totalShapes(); i++) {
+                    gl.glLoadIdentity();
+                    int[] faces = model._shapes.get(i);
+                    ArrayList<float[][]> vertices = new ArrayList<>();
 
-        gl.glReadBuffer(GL2.GL_BACK);
-        FloatBuffer buff = FloatBuffer.allocate(4);
-        gl.glReadPixels(mouseX, mouseY, 1, 1, GL2.GL_RGBA, GL2.GL_FLOAT, buff);
-        Color index = new Color(buff.get(0), buff.get(1), buff.get(2));
-        int i = index.getRGB();
-        Model modelMatch = getModelWithColourMatch(-i);
+                    for (int j = 0; j < faces.length; j++) {
+                        vertices.add(model.getVertex(faces[j] - 1));
+                    }
+
+                    gl.glTranslatef(model.translateX, model.translateY, 0f);
+                    gl.glRotatef(model.rotation, 0, 0, 1);
+                    gl.glScalef(model.scaleX, model.scaleY, 1);
+
+                    gl.glBegin(GL2.GL_POLYGON);
+                    gl.glColor3f(model.color[0], model.color[1], model.color[2]);
+                    for (int j = 0; j < vertices.size(); j++) {
+                        gl.glVertex2f(vertices.get(j)[0][0], vertices.get(j)[1][0]);
+                    }
+
+                    gl.glEnd();
+
+                    model._resize.drawControlHandle(gl, model, new float[] {model._resize.color.getRed() / 255f, model._resize.color.getGreen() / 255f, model._resize.color.getBlue() / 255f});
+                    model._rotate.drawControlHandle(gl, model, new float[] {model._rotate.color.getRed() / 255f, model._rotate.color.getGreen() / 255f, model._rotate.color.getBlue() / 255f});
+                }
+            });
+
+            gl.glReadBuffer(GL2.GL_BACK);
+            FloatBuffer buff = FloatBuffer.allocate(4);
+            gl.glReadPixels(mouseX, mouseY, 1, 1, GL2.GL_RGBA, GL2.GL_FLOAT, buff);
+            Color index = new Color(buff.get(0), buff.get(1), buff.get(2));
+            int i = index.getRGB();
+            modelMatch = getModelWithColourMatch(-i);
+        }
 
         if(modelMatch != null) {
             attachBoundingBox(modelMatch);
@@ -307,8 +319,8 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
             }
 
             gl.glTranslatef(model.translateX, model.translateY, 0f);
-            gl.glScalef(model.scaleX, model.scaleY, 1);
             gl.glRotatef(model.rotation, 0, 0, 1);
+            gl.glScalef(model.scaleX, model.scaleY, 1);
 
             gl.glBegin(GL2.GL_POLYGON);
             gl.glColor3f(model.getColour(i)[0], model.getColour(i)[1], model.getColour(i)[2]);
@@ -322,8 +334,8 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
         if(model.selected) {
             gl.glLoadIdentity();
             gl.glTranslatef(model.translateX, model.translateY, 0f);
-            gl.glScalef(model.scaleX, model.scaleY, 1);
             gl.glRotatef(model.rotation, 0, 0, 1);
+            gl.glScalef(model.scaleX, model.scaleY, 1);
 
             gl.glBegin(GL2.GL_POLYGON);
             gl.glColor4f(0f, 0f, 1f, .5f);
@@ -385,13 +397,33 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
 	@Override
 	public void mouseClicked(MouseEvent e) {
 		System.out.println("Mouse clicked on (" + e.getX() + "," + (HEIGHT - e.getY()) + ")");
+        boolean cloned = false;
+
+        if(e.getClickCount() % 2 == 0) {
+            for(int i = 0; i < models.size(); i++) {
+                if(models.get(i).selected) {
+                    models.get(i).selected = false;
+                    Model newModel = models.get(i).copy();
+                    newModel.selected = true;
+                    models.add(newModel);
+                    newModel.shiftDownAndRight();
+                    cloned = true;
+                    break;
+                }
+            }
+
+            ObjectCloned = true;
+        }
+
+        if(cloned) {
+            mousePressed = true;
+            ((GLCanvas)e.getSource()).repaint();
+        }
 	}
 
 	@Override
 	public void mousePressed(MouseEvent e) {
 		System.out.println("Mouse pressed on (" + e.getX() + "," + (HEIGHT - e.getY()) + ")");
-
-        models.forEach( model ->  model.selected = false);
 
         mousePressed = true;
         mouseX = e.getX();
@@ -673,16 +705,25 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
             newModel.scaleY = scaleY;
             newModel.scaleX = scaleX;
             newModel.rotation = rotation;
-            newModel._vertices.addAll(_vertices);
-            newModel._shapeColour.addAll(_shapeColour);
-            newModel._shapes.addAll(_shapes);
-            newModel._colour.addAll(_colour);
+
+            _vertices.forEach( vertices -> newModel._vertices.add(new float[][] {{vertices[0][0]}, {vertices[1][0]}}));
+            newModel._shapes.addAll(this._shapes);
+            newModel._shapeColour.addAll(this._shapeColour);
+            newModel._colour.addAll(this._colour);
+
             Color color = new Color(ID);
             newModel.color = new float[]{color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f};
             newModel._RGB = -color.getRGB();
             ID+= 1;
 
             return newModel;
+        }
+
+        private void shiftDownAndRight() {
+            for(int i =0 ; i < _vertices.size(); i++) {
+                _vertices.get(i)[0][0] -= .1f;
+                _vertices.get(i)[1][0] -= .1f;
+            }
         }
 	}
 
@@ -703,8 +744,8 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
         private void drawControlHandle(GL2 gl, Model model, float[] color) {
             gl.glLoadIdentity();
             gl.glTranslatef(model.translateX, model.translateY, 0f);
-            gl.glScalef(model.scaleX, model.scaleY, 1);
             gl.glRotatef(model.rotation, 0, 0, 1);
+            gl.glScalef(model.scaleX, model.scaleY, 1);
 
             float xScale;
             float yScale;
