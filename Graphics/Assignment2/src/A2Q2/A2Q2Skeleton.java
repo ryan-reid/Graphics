@@ -12,6 +12,7 @@ import java.util.ArrayList;
 
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
+import com.sun.org.apache.xpath.internal.operations.Mod;
 
 public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotionListener  {
 	public static final boolean TRACE = true;
@@ -123,12 +124,24 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
         drawModels(gl);
 	}
 
-    private double dot(float x1, float x2, float y1, float y2) {
-        return (x1 * x2) + (y1 * y2);
+    private float[][] rotateMatrix(float theta) {
+        return new float[][]{{(float) Math.cos(theta), -(float) Math.sin(theta), 0f}, {((float) Math.sin(theta)), (float) Math.cos(theta), 0}, {0, 0, 1}};
     }
 
-    private double cross(float x1, float x2, float y1, float y2) {
-        return (x1 * y2) - (y1 * x2);
+    private float[][] transformPoints(float[][] transformation, float[][] point) {
+        float[][] result = new float[3][1];
+
+        for (int k = 0; k < point[0].length; k++) {
+            for (int e = 0; e < 3; e++) {
+                float sum = 0;
+                for (int f = 0; f < point.length; f++) {
+                    sum += transformation[e][f] * point[f][k];
+                }
+                result[e][k] = sum;
+            }
+        }
+
+        return result;
     }
 
 	private void moveSelectedObject() {
@@ -136,21 +149,43 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
 
         if(selected != null) {
             if(selected.resizeSelected) {
-                float scaleX = mouseX - selected.oldMouseX;
-                float scaleY = mouseY - selected.oldMouseY;
+                float[][] rotateMatrix = rotateMatrix((float) Math.toRadians(-selected.rotation));
+                float[][] modifiedMouse = transformPoints(rotateMatrix, new float[][] { {mouseX}, {mouseY}, {1}});
+                float[][] oldMouseModified = transformPoints(rotateMatrix, new float[][] { {selected.oldMouseX}, {selected.oldMouseY}, {1}});
+                float scaleX = modifiedMouse[0][0] - oldMouseModified[0][0];
+                float scaleY = modifiedMouse[1][0] - oldMouseModified[1][0];
 
                 selected.scaleX += scaleX;
-                selected.scaleY += scaleY;
+                selected.scaleY -= scaleY;
                 selected.oldMouseY = mouseY;
                 selected.oldMouseX = mouseX;
 
             } else if(selected.rotateSelected) {
+                int adder;
 
-                float angle = (float) (Math.atan2(cross(mouseX, selected.oldMouseX, mouseY, selected.oldMouseY), dot(mouseX, selected.oldMouseX, mouseY, selected.oldMouseY)) * 180 / Math.PI);
+                if(selected.scaleX > 0 && selected.scaleY > 0) {
+                    adder = 90;
+                } else if(selected.scaleX < 0 && selected.scaleY > 0) {
+                    adder = -270;
+                } else if(selected.scaleX > 0 && selected.scaleY < 0) {
+                    adder = -90;
+                } else {
+                    adder = 270;
+                }
 
-                System.out.println("angle: " + angle);
+                int angle = (int) ((Math.atan2(selected.translateY - selected.oldMouseY , selected.translateX - selected.oldMouseX)) * 180 / Math.PI) + adder;
 
-                selected.rotation += angle;
+                if(angle <= 0) {
+                    angle = 360 + angle;
+                }
+
+                if(angle % 90 >= 80) {
+                    angle += (90 - (angle % 90));
+                } else if(angle % 90 <= 10) {
+                    angle -= angle % 90;
+                }
+
+                selected.rotation = angle;
 
             } else {
                 selected.translateX += (mouseX - selected.oldMouseX);
@@ -212,8 +247,8 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
 
                     gl.glEnd();
 
-                    model._resize.drawControlHandle(gl, model, new float[] {model._resize.color.getRed() / 255f, model._resize.color.getGreen() / 255f, model._resize.color.getBlue() / 255f});
-                    model._rotate.drawControlHandle(gl, model, new float[] {model._rotate.color.getRed() / 255f, model._rotate.color.getGreen() / 255f, model._rotate.color.getBlue() / 255f});
+                    model._resize.drawControlHandle(gl, model, new float[] {model._resize.color.getRed() / 255f, model._resize.color.getGreen() / 255f, model._resize.color.getBlue() / 255f}, true);
+                    model._rotate.drawControlHandle(gl, model, new float[] {model._rotate.color.getRed() / 255f, model._rotate.color.getGreen() / 255f, model._rotate.color.getBlue() / 255f}, false);
                 }
             });
 
@@ -238,16 +273,16 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
 
     private void attachHandles(Model modelMatch) {
         ControlHandle control = modelMatch._resize;
-        control.x1 = modelMatch.maxX;
-        control.x2 = modelMatch.maxX + .1f;
-        control.y1 = modelMatch.minY;
-        control.y2 = modelMatch.minY + .1f;
+        control.x1 = 0;
+        control.x2 = 8;
+        control.y1 = 0;
+        control.y2 = 8;
 
         ControlHandle rotate = modelMatch._rotate;
-        rotate.x1 = (modelMatch.maxX + modelMatch.minX) / 2;
-        rotate.x2 = rotate.x1 + .1f;
-        rotate.y1 = modelMatch.maxY;
-        rotate.y2 = rotate.y1 + .1f;
+        rotate.x1 = 0;
+        rotate.x2 = 8;
+        rotate.y1 = 0;
+        rotate.y2 = 8;
     }
 
     private void attachBoundingBox(Model model) {
@@ -288,17 +323,22 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
             Model model = models.get(i);
             if(model._RGB == color) {
                 modelMatch = model;
+                modelMatch.selected = true;
             } else if(model._rotate.RGB == color) {
                 modelMatch = model;
-                model.selected = true;
                 model.rotateSelected = true;
             } else if(model._resize.RGB == color) {
                 modelMatch = model;
-                model.selected = true;
                 model.resizeSelected = true;
             } else {
                 model.selected = false;
             }
+        }
+
+        if(modelMatch != null && !modelMatch.selected) {
+            modelMatch.resizeSelected = false;
+            modelMatch.rotateSelected = false;
+            modelMatch = null;
         }
 
         return modelMatch;
@@ -333,6 +373,7 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
 
         if(model.selected) {
             gl.glLoadIdentity();
+
             gl.glTranslatef(model.translateX, model.translateY, 0f);
             gl.glRotatef(model.rotation, 0, 0, 1);
             gl.glScalef(model.scaleX, model.scaleY, 1);
@@ -347,8 +388,8 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
             gl.glEnd();
             gl.glLoadIdentity();
 
-            model._resize.drawControlHandle(gl, model, new float[]{0, 1, 0});
-            model._rotate.drawControlHandle(gl, model, new float[]{1, 0, 0});
+            model._resize.drawControlHandle(gl, model, new float[]{0, 1, 0}, true);
+            model._rotate.drawControlHandle(gl, model, new float[]{1, 0, 0}, false);
 
             gl.glLoadIdentity();
         }
@@ -741,30 +782,20 @@ public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotion
             ID++;
         }
 
-        private void drawControlHandle(GL2 gl, Model model, float[] color) {
+        private void drawControlHandle(GL2 gl, Model model, float[] color, boolean resize) {
             gl.glLoadIdentity();
-            gl.glTranslatef(model.translateX, model.translateY, 0f);
+            System.out.println((model.scaleX * model.maxX) + model.translateX);
+
+            gl.glTranslatef(model.translateX, model.translateY, 0);
             gl.glRotatef(model.rotation, 0, 0, 1);
-            gl.glScalef(model.scaleX, model.scaleY, 1);
+            gl.glTranslatef(-model.translateX, -model.translateY, 0);
 
-            float xScale;
-            float yScale;
-
-            if(70 >= model.scaleX) {
-                xScale = 70 / model.scaleX;
+            if(resize) {
+                gl.glTranslatef((model.scaleX * model.maxX) + model.translateX, (model.scaleY * model.minY) + model.translateY, 0f);
             } else {
-                xScale = model.scaleX / 70;
+                gl.glTranslatef((model.scaleX * ((model.maxX + model.minX) / 2)) + model.translateX, (model.scaleY * model.maxY) + model.translateY, 0f);
             }
 
-            if(70 >= model.scaleY) {
-                yScale = 70 / model.scaleY;
-            } else {
-                yScale = model.scaleY / 70;
-            }
-
-            gl.glTranslatef((x1 + x2) / 2, (y1 + y2) / 2, 0);
-            gl.glScalef(xScale, yScale, 0);
-            gl.glTranslatef(-(x1 + x2) / 2, -(y1 + y2) / 2, 0);
 
 
             gl.glColor3f(color[0], color[1], color[2]);
