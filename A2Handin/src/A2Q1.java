@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
 
-public class A2Q1Skeleton implements GLEventListener {
+public class A2Q1 implements GLEventListener {
 	private static final boolean TRACE = true;
 	private static final String WINDOW_TITLE = "A2Q1: [Ryan Reid]";
 	private static final int INITIAL_WIDTH = 640;

@@ -14,7 +14,7 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
 import com.sun.org.apache.xpath.internal.operations.Mod;
 
-public class A2Q2Skeleton implements GLEventListener, MouseListener, MouseMotionListener  {
+public class A2Q2 implements GLEventListener, MouseListener, MouseMotionListener  {
 	public static final boolean TRACE = true;
 
 	public static final String WINDOW_TITLE = "A2Q2: [Ryan Reid]";
