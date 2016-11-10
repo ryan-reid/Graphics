@@ -1,3 +1,5 @@
+import com.jogamp.opengl.GLEventListener;
+
 import javax.swing.*;
 
 import java.awt.*;
@@ -11,21 +13,26 @@ import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
 
 public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener {
-	public static final boolean TRACE = false;
+    private static final boolean TRACE = false;
 
-	public static final String WINDOW_TITLE = "A3Q1: [Ryan Reid]";
-	public static final int INITIAL_WIDTH = 640;
-	public static final int INITIAL_HEIGHT = 480;
-    public static Wand wand;
-    public static boolean mousePressed;
-    public static boolean mouseHasBeenDragged;
-    public static int mouseX;
-    public static int mouseY;
-    public static int ID = 1;
+	private static final String WINDOW_TITLE = "A3Q1: [Ryan Reid]";
+	private static final int INITIAL_WIDTH = 640;
+	private static final int INITIAL_HEIGHT = 480;
+    private static Wand wand;
+    private static boolean mousePressed;
+    private static boolean mouseHasBeenDragged;
+    private static int mouseX;
+    private static int mouseY;
+    private static int ID = 1;
     private static long lastTimeDragged = 0;
     private static ArrayList<Bubble> bubbles = new ArrayList<>();
     private static final int _THRESHOLD = 10;
     private static float _bubbleGeneration = 0;
+    private static ArrayList<Particle> particles = new ArrayList<>();
+    private static SliderBar xAxisBar;
+    private static SliderBar yAxisBar;
+    private static Slider xSlider;
+    private static Slider ySlider;
 
 	public static void main(String[] args) {
 		final JFrame frame = new JFrame(WINDOW_TITLE);
@@ -88,6 +95,12 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         width = INITIAL_WIDTH;
         height = INITIAL_HEIGHT;
         wand = new Wand();
+
+        xSlider = new Slider((width / 2) - 5, (width / 2) + 5, 4, 10, 0, width - (width / 3), 0, (width / 3), 0);
+        ySlider = new Slider(width - 5, width - 11, (height / 2) - 5, (height / 2) + 5, 0, width - 5,  height - (height / 3), 0, (height / 3));
+
+        xAxisBar = new SliderBar(width / 3, width - (width / 3), 4, 10);
+        yAxisBar = new SliderBar(width - 5, width - 11, height / 3, height - (height / 3));
 	}
 
 	@Override
@@ -127,32 +140,135 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
             float distance = (float) Math.sqrt( Math.pow(mouseX - wand.oldMouseX, 2) + Math.pow(mouseY - wand.oldMouseY, 2));
             long timeSinceLastDrag = time - lastTimeDragged;
             timeSinceLastDrag /= 1000000;
+            timeSinceLastDrag /= 2;
             _bubbleGeneration += (float) (Math.random() * (distance / timeSinceLastDrag));
 
             if(_bubbleGeneration >= _THRESHOLD) {
-                float volInX = mouseX - wand.oldMouseX;
+                float volInX = (mouseX - wand.oldMouseX) * (float) (Math.random() * 2);
                 volInX /= (timeSinceLastDrag);
-                float volInY = mouseY - wand.oldMouseY;
+                float volInY = mouseY - wand.oldMouseY * (float) (Math.random() * 2);
                 volInY /= (timeSinceLastDrag);
                 addBubble(timeSinceLastDrag, volInX, volInY);
                 _bubbleGeneration = 0;
             }
 
-            System.out.println(_bubbleGeneration);
-
             moveWand();
             lastTimeDragged = time;
+        } else if(mouseHasBeenDragged && xSlider.selected) {
+            moveXSlider();
+        } else if(mouseHasBeenDragged && ySlider.selected) {
+            moveYSlider();
         }
 
+        drawSliders(gl);
         drawBubbles(gl, delta);
         drawWand(gl, wand.colour);
+        drawParticles(gl, delta);
 	}
 
+    private void moveXSlider() {
+        xSlider.x1 += (mouseX - ((xSlider.x1 + xSlider.x2) / 2));
+        xSlider.x2 = xSlider.x1 + 10;
+
+        if(xSlider.x2 > xSlider.maxX) {
+            xSlider.x2 = xSlider.maxX;
+            xSlider.x1 = xSlider.x2 - 10;
+        } else if(xSlider.x1 < xSlider.minX) {
+            xSlider.x1 = xSlider.minX;
+            xSlider.x2 = xSlider.x1 + 10;
+        }
+    }
+
+    private void moveYSlider() {
+        ySlider.y1 += (mouseY - ((ySlider.y1 + ySlider.y2) / 2));
+        ySlider.y2 = ySlider.y1 + 10;
+
+        if(ySlider.y2 > ySlider.maxY) {
+            ySlider.y2 = ySlider.maxY;
+            ySlider.y1 = ySlider.y2 - 10;
+        } else if(ySlider.y1 < ySlider.minY) {
+            ySlider.y1 = ySlider.minY;
+            ySlider.y2 = ySlider.y1 + 10;
+        }
+    }
+
+    private void drawSliders(GL2 gl) {
+        gl.glLoadIdentity();
+        gl.glColor3f(1f, 1f, 1f);
+
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glVertex2f(xAxisBar.x1, xAxisBar.y1);
+        gl.glVertex2f(xAxisBar.x1, xAxisBar.y2);
+        gl.glVertex2f(xAxisBar.x2, xAxisBar.y2);
+        gl.glVertex2f(xAxisBar.x2, xAxisBar.y1);
+
+        gl.glVertex2f(yAxisBar.x1, yAxisBar.y1);
+        gl.glVertex2f(yAxisBar.x1, yAxisBar.y2);
+        gl.glVertex2f(yAxisBar.x2, yAxisBar.y2);
+        gl.glVertex2f(yAxisBar.x2, yAxisBar.y1);
+
+        gl.glEnd();
+
+        drawXSliderBar(gl, new float[]{1,0,0});
+        drawYSliderBar(gl, new float[]{1,0,0});
+    }
+
+    private void drawXSliderBar(GL2 gl, float[] colours) {
+        gl.glLoadIdentity();
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glColor3f(colours[0], colours[1], colours[2]);
+        gl.glVertex2f(xSlider.x1, xSlider.y1);
+        gl.glVertex2f(xSlider.x1, xSlider.y2);
+        gl.glVertex2f(xSlider.x2, xSlider.y2);
+        gl.glVertex2f(xSlider.x2, xSlider.y1);
+        gl.glEnd();
+    }
+
+    private void drawYSliderBar(GL2 gl, float[] colours) {
+        gl.glLoadIdentity();
+        gl.glBegin(GL2.GL_QUADS);
+        gl.glColor3f(colours[0], colours[1], colours[2]);
+        gl.glVertex2f(ySlider.x1, ySlider.y1);
+        gl.glVertex2f(ySlider.x1, ySlider.y2);
+        gl.glVertex2f(ySlider.x2, ySlider.y2);
+        gl.glVertex2f(ySlider.x2, ySlider.y1);
+        gl.glEnd();
+    }
+
+    private void drawParticles(GL2 gl, long delta) {
+        particles.forEach( particle -> drawSpecificParticle(particle, gl, delta));
+        particles.removeIf( particle -> particle.markForDestruction);
+    }
+
+    private void drawSpecificParticle(Particle particle, GL2 gl, long delta) {
+        float modX = (delta * particle._velocityX);
+        float modY = (delta * particle._velocityY);
+
+        modX /= 100000000;
+        modY /= 100000000;
+
+        particle._x += modX;
+        particle._y += modY;
+
+        gl.glLoadIdentity();
+        gl.glColor3f((float) Math.random(), (float) Math.random(), (float) Math.random());
+        gl.glPointSize(2);
+
+        gl.glBegin(GL2.GL_POINTS);
+        gl.glVertex2f(particle._x, particle._y);
+        gl.glEnd();
+
+        particle.timeAlive += (float) (Math.random() * (delta / 1000000));
+
+        if(particle.timeAlive >= 1000) {
+            particle.markForDestruction = true;
+        }
+    }
 
 	public void drawBubbles(GL2 gl, float delta) {
         bubbles.forEach( bubble -> drawBubble(gl, bubble, delta));
 
-        bubbles.removeIf( bubble -> bubble.markForDestruction);
+        destroyBubbles();
     }
 
 	public void moveWand() {
@@ -165,13 +281,25 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         mouseHasBeenDragged = false;
     }
 
-	public void detectIfWandSelected(GL2 gl) {
-        gl.glLoadIdentity();
+    private void drawAlllSelectableObjects(GL2 gl) {
         gl.glDrawBuffer(GL2.GL_BACK);
         Color color = new Color(wand._RGB);
         float[] colours = {color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f};
         drawWand(gl, colours);
 
+        color = new Color(xSlider.RGB);
+        colours = new float[]{color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f};
+        drawXSliderBar(gl, colours);
+
+        color = new Color(ySlider.RGB);
+        colours = new float[]{color.getRed() / 255.0f, color.getGreen() / 255.0f, color.getBlue() / 255.0f};
+        drawYSliderBar(gl, colours);
+    }
+
+	public void detectIfWandSelected(GL2 gl) {
+        gl.glLoadIdentity();
+
+        drawAlllSelectableObjects(gl);
 
         gl.glReadBuffer(GL2.GL_BACK);
         FloatBuffer buff = FloatBuffer.allocate(4);
@@ -188,11 +316,30 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
             wand._selected = false;
         }
 
+        if(xSlider.RGB == i) {
+            xSlider.selected = true;
+            xSlider.oldMouseX = mouseX;
+            xSlider.oldMouseY = mouseY;
+            System.out.println("X Slider selected");
+        } else {
+            xSlider.selected = false;
+        }
+
+        if(ySlider.RGB == i) {
+            ySlider.selected = true;
+            ySlider.oldMouseX = mouseX;
+            ySlider.oldMouseY = mouseY;
+            System.out.println("Y Slider selected");
+        } else {
+            ySlider.selected = false;
+        }
+
         mousePressed = false;
     }
 
     public void addBubble(float delta, float volX, float volY) {
-        Bubble bubble = new Bubble(wand.transX, wand.transY + (wand.y2 * wand.scaleY) + 32, volX, volY, 3f, (float) (Math.random() * delta), (float) (Math.random() * delta));
+        float scale = ((float) Math.random() * delta);
+        Bubble bubble = new Bubble(wand.transX, wand.transY + (wand.y2 * wand.scaleY) + 32, volX, volY, 3f, scale, scale);
         bubbles.add(bubble);
     }
 
@@ -282,12 +429,27 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 
         if(bubble.x - (bubble.radius * bubble._scaleX) < 0 || bubble.x + (bubble.radius * bubble._scaleX) > width
         || bubble.y + (bubble.radius * bubble._scaleY) > height || bubble.y - (bubble.radius * bubble._scaleY) < 0) {
-            destroyBubble(bubble);
+            bubble.markForDestruction = true;
         }
     }
 
-    private void destroyBubble(Bubble bubble) {
-        bubble.markForDestruction = true;
+    private void destroyBubbles() {
+        bubbles.forEach( bubble -> {
+            if(bubble.markForDestruction) {
+                blowUpBubble(bubble);
+            }
+        });
+
+        bubbles.removeIf(bubble -> bubble.markForDestruction);
+    }
+
+    private void blowUpBubble(Bubble bubble) {
+        for(double i = 0; i < 2 * Math.PI; i += Math.PI / 128) {
+            float velocityX = (float) (Math.random() * 2) - 1;
+            float velocityY = (float) (Math.random() * 2) - 1;
+            Particle particle = new Particle( (((float) Math.cos(i) * bubble.radius) * bubble._scaleX) + bubble.x , ((((float) Math.sin(i) * bubble.radius) * bubble._scaleY) + bubble.y), 2, velocityX, velocityY);
+            particles.add(particle);
+        }
     }
 
     public void drawCircle(GL2 gl, float[] colour) {
@@ -296,10 +458,6 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         gl.glPopMatrix();
         drawInner(gl);
     }
-	
-	public float lerp(float t, float a, float b) {
-		return (1 - t) * a + t * b;
-	}
 	
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
@@ -318,40 +476,88 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 
 		this.width = width;
 		this.height = height;
-		// TODO: choose your coordinate system
-//		final float ar = (float)width / (height == 0 ? 1 : height);
 
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
-//		left = ar < 1 ? -1.0f : -ar;
-//		right = ar < 1 ? 1.0f : ar;
-//		bottom = ar > 1 ? -1.0f : -1/ar;
-//		top = ar > 1 ? 1.0f : 1/ar;
-//		gl.glOrthof(left, right, bottom, top, -1.0f, 1.0f);
 		gl.glOrthof(0, width, 0, height, 0.0f, 1.0f);
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
 	}
 
-	class Bubble {
-		public float x, y, vx, vy, _scaleX, _scaleY;
-		public float radius;
+	@Override
+	public void mouseDragged(MouseEvent e) {
+        mouseX = e.getX();
+        mouseY = (height - e.getY());
+        mouseHasBeenDragged = true;
+        System.out.println("Mouse dragged to (" + e.getX() + "," + (height - e.getY()) + ")");
+        ((GLCanvas)e.getSource()).repaint();
+	}
+
+	@Override
+	public void mouseMoved(MouseEvent e) {
+	}
+
+	@Override
+	public void mouseClicked(MouseEvent e) {
+	}
+
+	@Override
+	public void mousePressed(MouseEvent e) {
+        System.out.println("Mouse pressed on (" + e.getX() + "," + (height - e.getY()) + ")");
+
+        mousePressed = true;
+        mouseX = e.getX();
+        mouseY = (height - e.getY());
+        ((GLCanvas)e.getSource()).repaint();
+	}
+
+	@Override
+	public void mouseReleased(MouseEvent e) {
+	}
+
+	@Override
+	public void mouseEntered(MouseEvent e) {
+	}
+
+	@Override
+	public void mouseExited(MouseEvent e) {
+	}
+
+    class Bubble {
+        public float x, y, vx, vy, _scaleX, _scaleY;
+        public float radius;
         public boolean markForDestruction;
-		
-		public Bubble(float x, float y, float vx, float vy, float radius, float scaleX, float scaleY) {
-			this.x = x;
-			this.y = y;
-			this.vx = vx;
-			this.vy = vy;
-			this.radius = radius;
+
+        public Bubble(float x, float y, float vx, float vy, float radius, float scaleX, float scaleY) {
+            this.x = x;
+            this.y = y;
+            this.vx = vx;
+            this.vy = vy;
+            this.radius = radius;
             this._scaleX = scaleX;
             this._scaleY = scaleY;
             markForDestruction = false;
-		}
-		
-	}
+        }
 
-	class Wand {
+    }
+
+    private class Particle {
+        public float _x, _y, _velocityX, _velocityY;
+        public int _pointSize;
+        public long timeAlive;
+        public boolean markForDestruction;
+
+        public Particle(float x, float y, int pointSize, float velocityX, float velocityY) {
+            _x = x;
+            _y = y;
+            _pointSize = pointSize;
+            _velocityX = velocityX;
+            _velocityY = velocityY;
+            timeAlive = 0;
+        }
+    }
+
+    class Wand {
         public float x1, x2, y2, y1, scaleX, scaleY, transX, transY;
         public float[] colour;
         int _RGB;
@@ -374,50 +580,46 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 
             Color color = new Color(ID);
             _RGB = color.getRGB();
-            ID+= 1;
+            ID++;
         }
     }
 
-	@Override
-	public void mouseDragged(MouseEvent e) {
-        mouseX = e.getX();
-        mouseY = (height - e.getY());
-        mouseHasBeenDragged = true;
-        System.out.println("Mouse dragged to (" + e.getX() + "," + (height - e.getY()) + ")");
-        ((GLCanvas)e.getSource()).repaint();
-	}
+    class SliderBar {
+        public int x1, x2, y1, y2;
 
-	@Override
-	public void mouseMoved(MouseEvent e) {
-		// TODO Auto-generated method stub
-	}
+        public SliderBar(int x1, int x2, int y1, int y2) {
+            this.x1 = x1;
+            this.x2 = x2;
+            this.y1 = y1;
+            this.y2 = y2;
+        }
+    }
 
-	@Override
-	public void mouseClicked(MouseEvent e) {
-		// TODO Auto-generated method stub
-	}
+    class Slider {
+        public int x1, x2, y1, y2;
+        public int startingX, startingY;
+        public int maxX, maxY, minX, minY;
+        public float velocityMod;
+        public int RGB;
+        public boolean selected;
+        public int oldMouseX, oldMouseY;
 
-	@Override
-	public void mousePressed(MouseEvent e) {
-        System.out.println("Mouse pressed on (" + e.getX() + "," + (height - e.getY()) + ")");
+        public Slider(int x1, int x2, int y1, int y2, int velocityMod, int maxX, int maxY, int minX, int minY) {
+            this.x1 = x1;
+            this.x2 = x2;
+            this.y1 = y1;
+            this.y2 = y2;
+            this.velocityMod = velocityMod;
+            this.startingX = (x1 + x2) / 2;
+            this.startingY = (y1 + y2) / 2;
+            this.maxX = maxX;
+            this.maxY = maxY;
+            this.minX = minX;
+            this.minY = minY;
 
-        mousePressed = true;
-        mouseX = e.getX();
-        mouseY = (height - e.getY());
-        ((GLCanvas)e.getSource()).repaint();
-	}
-
-	@Override
-	public void mouseReleased(MouseEvent e) {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
-	public void mouseEntered(MouseEvent e) {
-	}
-
-	@Override
-	public void mouseExited(MouseEvent e) {
-	}
-
+            Color color = new Color(ID);
+            RGB = color.getRGB();
+            ID++;
+        }
+    }
 }
