@@ -1,3 +1,5 @@
+package A3Q1;
+
 import com.jogamp.opengl.GLEventListener;
 
 import javax.swing.*;
@@ -15,7 +17,7 @@ import com.jogamp.opengl.awt.*;
 public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener {
     private static final boolean TRACE = false;
 
-	private static final String WINDOW_TITLE = "A3Q1: [Ryan Reid]";
+	private static final String WINDOW_TITLE = "A3Q1.A3Q1: [Ryan Reid]";
 	private static final int INITIAL_WIDTH = 640;
 	private static final int INITIAL_HEIGHT = 480;
     private static Wand wand;
