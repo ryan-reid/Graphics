@@ -33,6 +33,8 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
     private static SliderBar yAxisBar;
     private static Slider xSlider;
     private static Slider ySlider;
+    private static double yWind;
+    private static double xWind;
 
 	public static void main(String[] args) {
 		final JFrame frame = new JFrame(WINDOW_TITLE);
@@ -76,10 +78,9 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 	}
 
 	/*** Instance variables and methods ***/
-	
-	int width, height;
-	float left, top, right, bottom;
-	long time = 0;
+
+    private int width, height;
+    private long time = 0;
 	
 	public void setup(final GLCanvas canvas) {
 		// Called for one-time setup
@@ -133,9 +134,26 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 		gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 
         if(mousePressed) {
-            detectIfWandSelected(gl);
+            detectSelectedObject(gl);
         }
 
+        handleMouseDrag();
+
+        bubbles.forEach(bubble -> bubble.incrementVelocity(xWind, yWind));
+        particles.forEach(particle -> particle.incrementVelocity(xWind, yWind));
+
+        drawSliders(gl);
+        drawBubbles(gl, delta);
+        drawWand(gl, wand.colour);
+        drawParticles(gl, delta);
+	}
+
+	private void incrementVelocity(Drawable drawable) {
+        drawable.vY += yWind;
+        drawable.vX += xWind;
+    }
+
+	private void handleMouseDrag() {
         if(mouseHasBeenDragged && wand._selected) {
             float distance = (float) Math.sqrt( Math.pow(mouseX - wand.oldMouseX, 2) + Math.pow(mouseY - wand.oldMouseY, 2));
             long timeSinceLastDrag = time - lastTimeDragged;
@@ -159,12 +177,7 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         } else if(mouseHasBeenDragged && ySlider.selected) {
             moveYSlider();
         }
-
-        drawSliders(gl);
-        drawBubbles(gl, delta);
-        drawWand(gl, wand.colour);
-        drawParticles(gl, delta);
-	}
+    }
 
     private void moveXSlider() {
         xSlider.x1 += (mouseX - ((xSlider.x1 + xSlider.x2) / 2));
@@ -177,6 +190,10 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
             xSlider.x1 = xSlider.minX;
             xSlider.x2 = xSlider.x1 + 10;
         }
+
+        double velocityMod = (double) (((xSlider.x2 + xSlider.x1) / 2) - (xSlider.maxX + xSlider.minX) / 2) / (double) xSlider.maxX;
+
+        xWind = velocityMod;
     }
 
     private void moveYSlider() {
@@ -190,6 +207,10 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
             ySlider.y1 = ySlider.minY;
             ySlider.y2 = ySlider.y1 + 10;
         }
+
+        double velocityMod = (double) (((ySlider.y2 + ySlider.y1) / 2) - (ySlider.maxY + ySlider.minY) / 2) / (double) ySlider.maxY;
+
+        yWind = velocityMod;
     }
 
     private void drawSliders(GL2 gl) {
@@ -241,8 +262,8 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
     }
 
     private void drawSpecificParticle(Particle particle, GL2 gl, long delta) {
-        float modX = (delta * particle._velocityX);
-        float modY = (delta * particle._velocityY);
+        float modX = (delta * particle.vX);
+        float modY = (delta * particle.vY);
 
         modX /= 100000000;
         modY /= 100000000;
@@ -265,13 +286,13 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         }
     }
 
-	public void drawBubbles(GL2 gl, float delta) {
+    private void drawBubbles(GL2 gl, float delta) {
         bubbles.forEach( bubble -> drawBubble(gl, bubble, delta));
 
         destroyBubbles();
     }
 
-	public void moveWand() {
+    private void moveWand() {
         wand.transX += (mouseX - wand.oldMouseX);
         wand.transY += (mouseY - wand.oldMouseY);
 
@@ -296,7 +317,7 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         drawYSliderBar(gl, colours);
     }
 
-	public void detectIfWandSelected(GL2 gl) {
+    private void detectSelectedObject(GL2 gl) {
         gl.glLoadIdentity();
 
         drawAlllSelectableObjects(gl);
@@ -337,18 +358,18 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         mousePressed = false;
     }
 
-    public void addBubble(float delta, float volX, float volY) {
+    private void addBubble(float delta, float volX, float volY) {
         float scale = ((float) Math.random() * delta);
         Bubble bubble = new Bubble(wand.transX, wand.transY + (wand.y2 * wand.scaleY) + 32, volX, volY, 3f, scale, scale);
         bubbles.add(bubble);
     }
 
-	public void drawWand(GL2 gl, float[] colour) {
+    private void drawWand(GL2 gl, float[] colour) {
         drawShaft(gl, colour);
         drawCircle(gl, colour);
 	}
 
-    public void drawShaft(GL2 gl, float[] colour) {
+    private void drawShaft(GL2 gl, float[] colour) {
         gl.glLoadIdentity();
         gl.glTranslatef(wand.transX, wand.transY, 0);
         gl.glPushMatrix();
@@ -363,7 +384,7 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         gl.glEnd();
     }
 
-    public void drawOuter(GL2 gl, float[] colour) {
+    private void drawOuter(GL2 gl, float[] colour) {
         float radius = 8f;
 
         gl.glColor3f(colour[0], colour[1], colour[2]);
@@ -378,7 +399,7 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         gl.glEnd();
     }
 
-    public void drawInner(GL2 gl) {
+    private void drawInner(GL2 gl) {
         float rad2 = 7f;
         gl.glColor3f(0f, 0f, 0f);
         gl.glTranslatef(0, (wand.y2 + -wand.y1) * wand.scaleY, 0);
@@ -391,9 +412,9 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         gl.glEnd();
     }
 
-    public void drawBubble(GL2 gl, Bubble bubble, float delta) {
-        float modX = (delta * bubble.vx);
-        float modY = (delta * bubble.vy);
+    private void drawBubble(GL2 gl, Bubble bubble, float delta) {
+        float modX = (delta * bubble.vX);
+        float modY = (delta * bubble.vY);
 
         modX /= 100000000;
         modY /= 100000000;
@@ -452,7 +473,7 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         }
     }
 
-    public void drawCircle(GL2 gl, float[] colour) {
+    private void drawCircle(GL2 gl, float[] colour) {
         gl.glPopMatrix();
         drawOuter(gl, colour);
         gl.glPopMatrix();
@@ -513,6 +534,9 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
+        wand._selected = false;
+        xSlider.selected = false;
+        ySlider.selected = false;
 	}
 
 	@Override
@@ -523,16 +547,25 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 	public void mouseExited(MouseEvent e) {
 	}
 
-    class Bubble {
-        public float x, y, vx, vy, _scaleX, _scaleY;
-        public float radius;
-        public boolean markForDestruction;
+	private abstract class Drawable {
+        float vX, vY;
 
-        public Bubble(float x, float y, float vx, float vy, float radius, float scaleX, float scaleY) {
+        public void incrementVelocity(double velocityX, double velocityY) {
+            vX += velocityX;
+            vY += velocityY;
+        }
+    }
+
+    private class Bubble extends Drawable {
+        float x, y, _scaleX, _scaleY;
+        float radius;
+        boolean markForDestruction;
+
+        Bubble(float x, float y, float vx, float vy, float radius, float scaleX, float scaleY) {
             this.x = x;
             this.y = y;
-            this.vx = vx;
-            this.vy = vy;
+            super.vX = vx;
+            super.vY = vy;
             this.radius = radius;
             this._scaleX = scaleX;
             this._scaleY = scaleY;
@@ -541,30 +574,30 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
 
     }
 
-    private class Particle {
-        public float _x, _y, _velocityX, _velocityY;
-        public int _pointSize;
-        public long timeAlive;
-        public boolean markForDestruction;
+    private class Particle extends Drawable {
+        float _x, _y;
+        int _pointSize;
+        long timeAlive;
+        boolean markForDestruction;
 
-        public Particle(float x, float y, int pointSize, float velocityX, float velocityY) {
+        Particle(float x, float y, int pointSize, float velocityX, float velocityY) {
             _x = x;
             _y = y;
             _pointSize = pointSize;
-            _velocityX = velocityX;
-            _velocityY = velocityY;
+            super.vX = velocityX;
+            super.vY = velocityY;
             timeAlive = 0;
         }
     }
 
-    class Wand {
-        public float x1, x2, y2, y1, scaleX, scaleY, transX, transY;
-        public float[] colour;
+    private class Wand {
+        float x1, x2, y2, y1, scaleX, scaleY, transX, transY;
+        float[] colour;
         int _RGB;
-        public boolean _selected;
-        public int oldMouseX, oldMouseY;
+        boolean _selected;
+        int oldMouseX, oldMouseY;
 
-        public Wand() {
+        Wand() {
             x1 = -1;
             y1 = -1;
             x2 = 1;
@@ -584,10 +617,10 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         }
     }
 
-    class SliderBar {
-        public int x1, x2, y1, y2;
+    private class SliderBar {
+        int x1, x2, y1, y2;
 
-        public SliderBar(int x1, int x2, int y1, int y2) {
+        SliderBar(int x1, int x2, int y1, int y2) {
             this.x1 = x1;
             this.x2 = x2;
             this.y1 = y1;
@@ -595,16 +628,16 @@ public class A3Q1 implements GLEventListener, MouseListener, MouseMotionListener
         }
     }
 
-    class Slider {
-        public int x1, x2, y1, y2;
-        public int startingX, startingY;
-        public int maxX, maxY, minX, minY;
-        public float velocityMod;
-        public int RGB;
-        public boolean selected;
-        public int oldMouseX, oldMouseY;
+    private class Slider {
+        int x1, x2, y1, y2;
+        int startingX, startingY;
+        int maxX, maxY, minX, minY;
+        float velocityMod;
+        int RGB;
+        boolean selected;
+        int oldMouseX, oldMouseY;
 
-        public Slider(int x1, int x2, int y1, int y2, int velocityMod, int maxX, int maxY, int minX, int minY) {
+        Slider(int x1, int x2, int y1, int y2, int velocityMod, int maxX, int maxY, int minX, int minY) {
             this.x1 = x1;
             this.x2 = x2;
             this.y1 = y1;
