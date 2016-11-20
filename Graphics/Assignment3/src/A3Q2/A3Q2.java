@@ -89,9 +89,20 @@ public class A3Q2 implements GLEventListener, KeyListener {
 		}, 1000, 1000/60);
 
 		// TODO: Add/modify code here
-//		robot = new Structure(new Shape[] { }, new float[][] {});
-//		robot = new Structure(new Shape[] { new Shape() }, new float[][] {{0.0f, 2.0f, 0.0f}});
-		robot = new Structure(new Shape[] { new Shape(INPUT_PATH_NAME + "dodecahedron.obj") }, new float[][] {{0.0f, 2.0f, 0.0f}});
+        Structure leftLeg = new Structure(new Shape[] { }, new float[][] {});
+        Structure rightLeg = new Structure(new Shape[] { }, new float[][] {});
+
+        Structure torso = new Structure(new Shape[] {}, new float[][] {});
+        torso.vertices.forEach(vert -> vert[0] *= 2.5);
+
+        Structure head = new Structure(new Shape[] {}, new float[][] {});
+        head.vertices.forEach(vert -> vert[1] *= .5);
+
+        Structure rightArm = new Structure(new Shape[] {}, new float[][] {});
+
+        Structure leftArm = new Structure(new Shape[] {}, new float[][] {});
+
+        robot = new Structure(new Shape[] {leftLeg, rightLeg, torso, head, rightArm, leftArm}, new float[][] {{0f, 0f, 0f}, {.75f, 0f, 0f}, {.375f, 1.1f, 0f}, {.375f, 1.95f, 0f}, {1.35f, 1.5f, 0f}, {-.6f, 1.5f, 0}});
 	}
 
 	@Override
@@ -124,27 +135,86 @@ public class A3Q2 implements GLEventListener, KeyListener {
 			gl.glMatrixMode(GL2.GL_PROJECTION);
 			gl.glLoadIdentity();
 
-			if (0 == projection) {
-				gl.glOrthof(ar < 1 ? -1.0f : -ar, ar < 1 ? 1.0f : ar, ar > 1 ? -1.0f : -1/ar, ar > 1 ? 1.0f : 1/ar, 1.0f, 3.0f);
-			} else {
-				gl.glFrustumf(ar < 1 ? -1.0f : -ar, ar < 1 ? 1.0f : ar, ar > 1 ? -1.0f : -1/ar, ar > 1 ? 1.0f : 1/ar, 1.0f, 3.0f);
-			}
+            if (0 == projection) {
+                gl.glOrthof(ar < 1 ? -1.0f : -ar, ar < 1 ? 1.0f : ar, ar > 1 ? -1.0f : -1/ar, ar > 1 ? 1.0f : 1/ar, 1.0f, 3.0f);
+            } else {
+                gl.glFrustumf(ar < 1 ? -1.0f : -ar, ar < 1 ? 1.0f : ar, ar > 1 ? -1.0f : -1/ar, ar > 1 ? 1.0f : 1/ar, 1.0f, 3.0f);
+            }
 
 			gl.glMatrixMode(GL2.GL_MODELVIEW);
-			gl.glLoadIdentity();
+            gl.glLoadIdentity();
 
-			// TODO: choose view based on "cameraAngle" (don't use this!)
-			gl.glTranslatef(0.0f, -0.5f, -2f - 0.3f * cameraAngle);
-			gl.glRotatef(30.0f * cameraAngle, 1.0f, 1.0f, 0.0f);
+            gl.glTranslatef(0.0f, -0.5f, -2f - 0.3f * cameraAngle);
+
+            if(cameraAngle == 0) {
+                gl.glRotatef(60, 1.0f, 0.0f, 1.0f);
+            } else if(cameraAngle == 1) {
+                gl.glRotatef(10, 0f, 1.0f, 1.0f);
+            } else if(cameraAngle == 2) {
+                gl.glRotatef(20, 1.0f, 0.0f, 1.0f);
+            }
+
 			gl.glScalef(0.5f, 0.5f, 0.5f);
 
-			viewChanged = false;
+            viewChanged = false;
 		}
-		
-		// TODO: Add your drawing code
 
+        gl.glPushMatrix();
+        drawFloor(gl);
+        gl.glPopMatrix();
+
+        gl.glPushMatrix();
+        moveRobot();
 		robot.draw(gl);
+        gl.glPopMatrix();
+
 	}
+
+	private void moveRobot() {
+
+        for(int i = 0; i < robot.contents.length; i++) {
+            robot.contents[i].vertices.forEach(vert -> vert[2] += .05);
+        }
+
+        boolean offScreen = true;
+
+        for(int i = 0; i < robot.contents.length; i++) {
+            for(int j = 0; j < robot.contents[i].vertices.size(); j++) {
+                if(robot.contents[i].vertices.get(i)[2] < 5) {
+                    offScreen = false;
+                    break;
+                }
+            }
+
+            if(!offScreen) {
+                break;
+            }
+        }
+
+        if(offScreen) {
+            for(int i = 0; i < robot.contents.length; i++) {
+                robot.contents[i].vertices.forEach(vert -> vert[2] -= 10);
+            }
+        }
+    }
+
+	private void drawFloor(GL2 gl) {
+        gl.glRotatef(90, 0, 1 , 0);
+        gl.glBegin(GL2.GL_TRIANGLES);
+        gl.glColor3f(0.2f, 0.1f, 0.1f);
+
+        gl.glVertex3f(500, -1, -2);
+        gl.glVertex3f(-500, -1, -2);
+        gl.glVertex3f(-500, -1, 2);
+
+        gl.glColor3f(0.1f, 0.2f, 0.1f);
+
+        gl.glVertex3f(500, -1, -2);
+        gl.glVertex3f(-500, -1, 2);
+        gl.glVertex3f(500,  -1, 2);
+
+        gl.glEnd();
+    }
 
 	@Override
 	public void dispose(GLAutoDrawable drawable) {
@@ -227,7 +297,6 @@ class Face {
 	}
 }
 
-// TODO: rewrite the following as you like
 class Shape {
 	// set this to NULL if you don't want outlines
 	public float[] line_colour;
@@ -238,17 +307,17 @@ class Shape {
 	public Shape() {
 		// you could subclass Shape and override this with your own
 		init();
-		
+
 		// default shape: cube
-		vertices.add(new float[] { -1.0f, -1.0f, 1.0f });
-		vertices.add(new float[] { 1.0f, -1.0f, 1.0f });
-		vertices.add(new float[] { 1.0f, 1.0f, 1.0f });
-		vertices.add(new float[] { -1.0f, 1.0f, 1.0f });
-		vertices.add(new float[] { -1.0f, -1.0f, -1.0f });
-		vertices.add(new float[] { 1.0f, -1.0f, -1.0f });
-		vertices.add(new float[] { 1.0f, 1.0f, -1.0f });
-		vertices.add(new float[] { -1.0f, 1.0f, -1.0f });
-		
+		vertices.add(new float[] { -.25f, -.5f, .1f });
+		vertices.add(new float[] { .25f, -.5f, .1f });
+		vertices.add(new float[] { .25f, .5f, .1f });
+		vertices.add(new float[] { -.25f, .5f, .1f });
+		vertices.add(new float[] { -.25f, -.5f, -.1f });
+		vertices.add(new float[] { .25f, -.5f, -.1f });
+		vertices.add(new float[] { .25f, .5f, -.1f });
+		vertices.add(new float[] { -.25f, .5f, -.1f });
+
 		faces.add(new Face(new int[] { 0, 1, 2, 3 }, new float[] { 1.0f, 0.0f, 0.0f } ));
 		faces.add(new Face(new int[] { 0, 3, 7, 4 }, new float[] { 1.0f, 1.0f, 0.0f } ));
 		faces.add(new Face(new int[] { 7, 6, 5, 4 }, new float[] { 1.0f, 1.0f, 1.0f } ));
@@ -408,11 +477,11 @@ class Shape {
 // TODO: rewrite the following as you like
 class Structure extends Shape {
 	// this array can include other structures...
-	private Shape[] contents;
+	public Shape[] contents;
 	private float[][] positions;
 	
 	public Structure(Shape[] contents, float[][] positions) {
-		super();
+		//super();
 		init(contents, positions);
 	}
 	
@@ -436,7 +505,7 @@ class Structure extends Shape {
 			gl.glPushMatrix();
 			gl.glTranslatef(positions[i][0], positions[i][1], positions[i][2]);
 			contents[i].draw(gl);
-			gl.glPopMatrix();
+            gl.glPopMatrix();
 		}
 	}
 }
