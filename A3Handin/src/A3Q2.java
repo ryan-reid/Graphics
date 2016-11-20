@@ -492,7 +492,6 @@ class Structure extends Shape {
 		for (int i = 0; i < contents.length; i++) {
 			gl.glPushMatrix();
 
-            //left leg
             if(i == 0) {
 
                 if(roateUp) {
@@ -509,34 +508,23 @@ class Structure extends Shape {
                     }
                 }
 
+                System.out.println("Angle:" + angle);
                 gl.glRotatef(angle, 1, 0, 0);
             }
 
-            //right leg
             if(i == 1) {
-                if(roateUp) {
-                    angle = (float) (45 * rotate) % 45;
+                angle = (float) (45 * rotate);
 
-                    if(angle == 45) {
-                        roateUp = false;
-                    }
-                } else {
-                    angle = (float) (45 * rotate);
-                    if(angle <= 0.5) {
-                        angle = 45;
-                        roateUp = true;
-                    }
+                if(angle > 45) {
+                    angle = 45 - angle;
                 }
-
                 gl.glRotatef(-angle, 1, 0, 0);
             }
 
-            //head
             if(i == 3) {
                 gl.glRotatef(-(float) (180.0f * rotate), 0, 1, 0);
             }
 
-            //left arm
             if(i == 4) {
                 angle = (float) (45 * rotate);
 
@@ -546,7 +534,6 @@ class Structure extends Shape {
                 gl.glRotatef(-angle, 1, 0, 0);
             }
 
-            //right arm
             if(i == 5) {
                 angle = (float) (45 * rotate);
 
@@ -561,4 +548,47 @@ class Structure extends Shape {
             gl.glPopMatrix();
 		}
 	}
+
+	private float[] getCenter(Shape shape) {
+        float[] center = new float[3];
+        float xMax = -500;
+        float xMin = 500;
+        float yMax = -500;
+        float yMin = 500;
+        float zMax = -500;
+        float zMin = 500;
+
+
+        for(int i = 0; i < shape.vertices.size(); i++) {
+            if(shape.vertices.get(i)[0] > xMax) {
+                xMax = shape.vertices.get(i)[0];
+            }
+
+            if(shape.vertices.get(i)[1] > yMax) {
+                yMax = shape.vertices.get(i)[1];
+            }
+
+            if(shape.vertices.get(i)[2] > zMax) {
+                zMax = shape.vertices.get(i)[2];
+            }
+
+            if(shape.vertices.get(i)[0] < xMin) {
+                xMin = shape.vertices.get(i)[0];
+            }
+
+            if(shape.vertices.get(i)[1] < yMin) {
+                yMin = shape.vertices.get(i)[1];
+            }
+
+            if(shape.vertices.get(i)[2] < zMin) {
+                zMin = shape.vertices.get(i)[2];
+            }
+        }
+
+        center[0] = (xMax + xMin) / 2;
+        center[1] = (yMax + yMin) / 2;
+        center[2] = (zMax + zMin) / 2;
+
+        return center;
+    }
 }
