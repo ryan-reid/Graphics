@@ -177,7 +177,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glDepthFunc(GL2.GL_LEQUAL);
 		gl.glEnable(GL2.GL_BLEND);
 		gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
-		//gl.glEnable(GL2.GL_CULL_FACE);
+		gl.glEnable(GL2.GL_CULL_FACE);
 	}
 
 	@Override
@@ -196,6 +196,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
 		if(robotZ >= 22 || robotZ <= -22) {
 			robotZ = 0;
+			VELOCITY = 0f;
 		}
 
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
@@ -218,7 +219,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		drawBoundaryWalls(gl);
 
 		for (Rotator r: rotators) {
-			r.update(1);
+			r.update(1f);
 		}
 	}
 
@@ -245,13 +246,13 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glVertex3f(22, 0, -22);
 
 		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, 0, 22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, 50, 22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(-22, 50, -22);
-		gl.glTexCoord2f(1, 0);
 		gl.glVertex3f(-22, 0, -22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, 50, -22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(-22, 50, 22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(-22, 0, 22);
 
 		gl.glTexCoord2f(1, 1);
 		gl.glVertex3f(-22, 0, 22);
@@ -263,13 +264,13 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glVertex3f(22, 0, 22);
 
 		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, 0, -22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, 50, -22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(22, 50, -22);
-		gl.glTexCoord2f(1, 0);
 		gl.glVertex3f(22, 0, -22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(22, 50, -22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(-22, 50, -22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(-22, 0, -22);
 
 		textures[1].disable(gl);
 
