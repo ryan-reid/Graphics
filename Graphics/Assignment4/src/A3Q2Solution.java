@@ -25,11 +25,13 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	public static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
 	public static final int INITIAL_WIDTH = 640;
 	public static final int INITIAL_HEIGHT = 640;
+	public static float VELOCITY = .015f;
+	public static float ROTATION = 0f;
 
 	// Name of the input file path
 	private static final String TEXTURE_PATH = "resources/";
 
-	public static final String[] TEXTURE_FILES = { "circle.png" };
+	public static final String[] TEXTURE_FILES = { "circle.png", "08.jpg", "floor.jpg" };
 
 	private static final GLU glu = new GLU();
 
@@ -190,83 +192,11 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
 		updateCamera(gl);
 
-		robotZ += 0.015f;
+		robotZ += VELOCITY;
 
-		gl.glPushMatrix();
-		drawRobot(gl);
-		drawFloor(gl);
-		drawBoundaryWalls(gl);
-		
-
-		for (Rotator r: rotators) {
-			r.update(1);
+		if(robotZ >= 22 || robotZ <= -22) {
+			robotZ = 0;
 		}
-	}
-
-	private void drawBoundaryWalls(GL2 gl) {
-		gl.glPushMatrix();
-		gl.glTranslatef(0, -0.75f, 0);
-
-		final float SQSIZE = 0.25f;
-		for (float y = -22; y < 22; y+=SQSIZE) {
-			for (float z = -22; z < 22; z+=SQSIZE) {
-				drawAllFourWalls(gl, y, z, SQSIZE);
-			}
-		}
-		gl.glPopMatrix();
-
-	}
-
-	private void drawAllFourWalls(GL2 gl, float y, float z, float SQSIZE) {
-		textures[0].bind(gl);
-		textures[0].enable(gl);
-		gl.glBegin(GL2.GL_QUADS);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(22, y, z);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(22, y + SQSIZE, z);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(22, y + SQSIZE, z+SQSIZE);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(22, y, z+SQSIZE);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, y, z);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, y + SQSIZE, z);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(-22, y + SQSIZE, z+SQSIZE);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(-22, y, z+SQSIZE);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, y, 22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, y + SQSIZE, 22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(22, y + SQSIZE, 22);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(22, y, 22);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, y, -22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, y + SQSIZE, -22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(22, y + SQSIZE, -22);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(22, y, -22);
-		gl.glEnd();
-	}
-
-	private void updateCamera(GL2 gl) {
-		gl.glViewport(0, 0, INITIAL_WIDTH, INITIAL_HEIGHT);
-
-		gl.glMatrixMode(GL2.GL_PROJECTION);
-		gl.glLoadIdentity();
-
-		glu.gluPerspective (110, ar, 1.0f, 50.0);
 
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
@@ -278,36 +208,109 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			gl.glTranslatef(0.0f, -0.9f, robotZ);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		}
+
+		gl.glRotatef(-ROTATION, 0, 1, 0);
+		gl.glPushMatrix();
+		gl.glPushMatrix();
+
+		drawRobot(gl);
+		drawFloor(gl);
+		drawBoundaryWalls(gl);
+
+		for (Rotator r: rotators) {
+			r.update(1);
+		}
+	}
+
+	private void drawBoundaryWalls(GL2 gl) {
+		gl.glPushMatrix();
+		gl.glTranslatef(0, -0.75f, 0);
+		drawAllFourWalls(gl);
+		gl.glPopMatrix();
+
+	}
+
+	private void drawAllFourWalls(GL2 gl) {
+		textures[1].bind(gl);
+		textures[1].enable(gl);
+		gl.glBegin(GL2.GL_QUADS);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(22, 0, 22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(22, 50, 22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(22, 50, -22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(22, 0, -22);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(-22, 0, 22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, 50, 22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(-22, 50, -22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(-22, 0, -22);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(-22, 0, 22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, 50, 22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(22, 50, 22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(22, 0, 22);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(-22, 0, -22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, 50, -22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(22, 50, -22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(22, 0, -22);
+
+		textures[1].disable(gl);
+
+		gl.glEnd();
+	}
+
+	private void updateCamera(GL2 gl) {
+		gl.glViewport(0, 0, INITIAL_WIDTH, INITIAL_HEIGHT);
+
+		gl.glMatrixMode(GL2.GL_PROJECTION);
+		gl.glLoadIdentity();
+
+		glu.gluPerspective (110, ar, 1.0f, 50.0);
 	}
 
 	private void drawRobot(GL2 gl) {
 		gl.glTranslatef(0, 0, robotZ);
 		robot.draw(gl);
 		gl.glPopMatrix();
+		gl.glPopMatrix();
 	}
 
 	private void drawFloor(GL2 gl) {
 		gl.glPushMatrix();
 		gl.glTranslatef(0, -0.75f, 0);
-		boolean dark = true;
-		final float SQSIZE = 0.25f;
-		for (float x = -22; x < 22; x+=SQSIZE) {
-			for (float z = -22; z < 22; z+=SQSIZE) {
-				if (dark) {
-					gl.glColor3f(0.2f, 0.2f, 0.2f);
-				} else {
-					gl.glColor3f(0.5f, 0.5f, 0.5f);
-				}
-				dark = !dark;
-				gl.glBegin(GL2.GL_QUADS);
-				gl.glVertex3f(x, 0, z);
-				gl.glVertex3f(x+SQSIZE, 0, z);
-				gl.glVertex3f(x+SQSIZE, 0, z+SQSIZE);
-				gl.glVertex3f(x, 0, z+SQSIZE);
-				gl.glEnd();
-			}
-			dark = !dark;
-		}
+
+		textures[2].bind(gl);
+		textures[2].enable(gl);
+
+		gl.glBegin(GL2.GL_QUADS);
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(-22, 0, -22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, 0, 22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(22, 0, 22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(22, 0, -22);
+		gl.glEnd();
+
+		textures[2].disable(gl);
 		gl.glPopMatrix();
 
 	}
@@ -340,16 +343,20 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
 	@Override
 	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
 		if (e.getKeyChar() == ' ') {
 			cameraAngle++;
-			if (cameraAngle == 3) {
+			if (cameraAngle == 2) {
 				cameraAngle = 0;
-				projection = (projection + 1) % 2;
 			}
-			System.out.println("Pressed space: camera = " + cameraAngle + ", projection = " + projection);
-			viewChanged = true;
 			((GLCanvas)e.getSource()).repaint();
+		} else if(e.getKeyChar() == 'w') {
+			VELOCITY += .005f;
+		} else if(e.getKeyChar() == 's') {
+			VELOCITY += -.005f;
+		} else if(e.getKeyChar() == 'a') {
+			ROTATION += 1;
+		} else if(e.getKeyChar() == 'd') {
+			ROTATION += -1;
 		}
 	}
 
