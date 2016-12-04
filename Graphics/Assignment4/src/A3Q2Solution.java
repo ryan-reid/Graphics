@@ -1,6 +1,9 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.event.*;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -11,16 +14,22 @@ import java.util.TimerTask;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
 import com.jogamp.opengl.glu.*;
+import com.jogamp.opengl.util.awt.ImageUtil;
+import com.jogamp.opengl.util.texture.Texture;
+import com.jogamp.opengl.util.texture.TextureIO;
+import com.jogamp.opengl.util.texture.awt.AWTTextureIO;
 
 public class A3Q2Solution implements GLEventListener, KeyListener {
 	public static final boolean TRACE = false;
 
-	public static final String WINDOW_TITLE = "A3Q2: [your name here]";
+	public static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
 	public static final int INITIAL_WIDTH = 640;
 	public static final int INITIAL_HEIGHT = 640;
 
 	// Name of the input file path
-	public static final String INPUT_PATH_NAME = "resources/";
+	private static final String TEXTURE_PATH = "resources/";
+
+	public static final String[] TEXTURE_FILES = { "circle.png" };
 
 	private static final GLU glu = new GLU();
 
@@ -71,7 +80,8 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	private int cameraAngle = 0;
 	private boolean viewChanged = true;
 
-	// TODO: Add instance variables here
+	private String direction;
+	private Texture[] textures;
 
 	private Structure robot;
 	private Rotator[] rotators;
@@ -147,12 +157,25 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
 		final GL2 gl = drawable.getGL().getGL2();
 
+		textures = new Texture[TEXTURE_FILES.length];
+		try {
+			for (int i = 0; i < TEXTURE_FILES.length; i++) {
+				File infile = new File(TEXTURE_PATH + TEXTURE_FILES[i]);
+				BufferedImage image = ImageIO.read(infile);
+				ImageUtil.flipImageVertically(image);
+				textures[i] = TextureIO.newTexture(AWTTextureIO.newTextureData(gl.getGLProfile(), image, false));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 		// TODO: Add code here
 		gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		gl.glEnable(GL2.GL_DEPTH_TEST);
 		gl.glDepthFunc(GL2.GL_LEQUAL);
 		gl.glEnable(GL2.GL_BLEND);
 		gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
+		//gl.glEnable(GL2.GL_CULL_FACE);
 	}
 
 	@Override
@@ -165,6 +188,79 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
 		gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
 
+		updateCamera(gl);
+
+		robotZ += 0.015f;
+
+		gl.glPushMatrix();
+		drawRobot(gl);
+		drawFloor(gl);
+		drawBoundaryWalls(gl);
+		
+
+		for (Rotator r: rotators) {
+			r.update(1);
+		}
+	}
+
+	private void drawBoundaryWalls(GL2 gl) {
+		gl.glPushMatrix();
+		gl.glTranslatef(0, -0.75f, 0);
+
+		final float SQSIZE = 0.25f;
+		for (float y = -22; y < 22; y+=SQSIZE) {
+			for (float z = -22; z < 22; z+=SQSIZE) {
+				drawAllFourWalls(gl, y, z, SQSIZE);
+			}
+		}
+		gl.glPopMatrix();
+
+	}
+
+	private void drawAllFourWalls(GL2 gl, float y, float z, float SQSIZE) {
+		textures[0].bind(gl);
+		textures[0].enable(gl);
+		gl.glBegin(GL2.GL_QUADS);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(22, y, z);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(22, y + SQSIZE, z);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(22, y + SQSIZE, z+SQSIZE);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(22, y, z+SQSIZE);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(-22, y, z);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, y + SQSIZE, z);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(-22, y + SQSIZE, z+SQSIZE);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(-22, y, z+SQSIZE);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(-22, y, 22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, y + SQSIZE, 22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(22, y + SQSIZE, 22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(22, y, 22);
+
+		gl.glTexCoord2f(1, 1);
+		gl.glVertex3f(-22, y, -22);
+		gl.glTexCoord2f(0, 1);
+		gl.glVertex3f(-22, y + SQSIZE, -22);
+		gl.glTexCoord2f(0, 0);
+		gl.glVertex3f(22, y + SQSIZE, -22);
+		gl.glTexCoord2f(1, 0);
+		gl.glVertex3f(22, y, -22);
+		gl.glEnd();
+	}
+
+	private void updateCamera(GL2 gl) {
 		gl.glViewport(0, 0, INITIAL_WIDTH, INITIAL_HEIGHT);
 
 		gl.glMatrixMode(GL2.GL_PROJECTION);
@@ -175,7 +271,6 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
 
-		// TODO: choose view based on "cameraAngle" (don't use this!)
 		if (0 == cameraAngle) {
 			gl.glTranslatef(0.0f, -0.9f, -1.3f + robotZ);
 			gl.glRotatef(-180, 0f, 1f, 0f);
@@ -183,20 +278,21 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			gl.glTranslatef(0.0f, -0.9f, robotZ);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		}
+	}
 
-		robotZ += 0.015f;
-
-		gl.glPushMatrix();
+	private void drawRobot(GL2 gl) {
 		gl.glTranslatef(0, 0, robotZ);
 		robot.draw(gl);
 		gl.glPopMatrix();
-		
+	}
+
+	private void drawFloor(GL2 gl) {
 		gl.glPushMatrix();
 		gl.glTranslatef(0, -0.75f, 0);
 		boolean dark = true;
 		final float SQSIZE = 0.25f;
-		for (float x = -2; x < 2; x+=SQSIZE) {
-			for (float z = -2; z < 2; z+=SQSIZE) {
+		for (float x = -22; x < 22; x+=SQSIZE) {
+			for (float z = -22; z < 22; z+=SQSIZE) {
 				if (dark) {
 					gl.glColor3f(0.2f, 0.2f, 0.2f);
 				} else {
@@ -213,10 +309,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			dark = !dark;
 		}
 		gl.glPopMatrix();
-		
-		for (Rotator r: rotators) {
-			r.update(1);
-		}
+
 	}
 
 	@Override
