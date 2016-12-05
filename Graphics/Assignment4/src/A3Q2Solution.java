@@ -27,11 +27,12 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	public static final int INITIAL_HEIGHT = 640;
 	public static float VELOCITY = .015f;
 	public static float ROTATION = 0f;
+    private static float XCOORD = 0f;
 
 	// Name of the input file path
 	private static final String TEXTURE_PATH = "resources/";
 
-	public static final String[] TEXTURE_FILES = { "circle.png", "08.jpg", "floor.jpg" };
+	public static final String[] TEXTURE_FILES = { "circle.png", "08.jpg", "floor.jpg", "Wood.jpg" };
 
 	private static final GLU glu = new GLU();
 
@@ -88,6 +89,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	private Structure robot;
 	private Rotator[] rotators;
 	private float robotZ;
+    private ArrayList<Shape> worldObjects = new ArrayList<>();
 
 	public void setup(final GLCanvas canvas) {
 		// Called for one-time setup
@@ -124,7 +126,6 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		robot = new Structure(
 							new Shape[] {
 								new Shape(new float[] {0.1f,0.15f,0.1f}, head),
-//								new Shape(INPUT_PATH_NAME + "dodecahedron.obj", new float[] {0.2f,0.2f,0.2f}, head),
 								new Structure(new Shape[] {
 										new Shape(new float[] {0.06f, -0.125f, 0.06f}, rightElbow)},
 										new float[][] {{-0.058f, -0.15f, -0.001f}},
@@ -149,6 +150,39 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 								{0.15f, -0.3f, 0 }
 							},
 							new float[] {0.15f,0.25f,0.15f}, null);
+
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 20} , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 18} , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {5, 1}   , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 22}  , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {3, -14} , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {21, -20}, -1    ));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, -8}  , -1    ));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, 3}   , -1    ));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 12}  , -1    ));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-18, 18}, -1    ));
+
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-2, 9}      , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-8, 0}      , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -5}    , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -8}    , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-17, -2}    , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 4f, (float) Math.random() * 2}, new float[] {-19, 16}    , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {4, -4}      , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, -9}     , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {12, -11}    , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {9, -19}     , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-15, -3}    , -1));
+
+
+        //Walls
+        worldObjects.add(new Shape(new float[] {22, 50f, 1f}, new float[] {0, 22}, 3));
+        worldObjects.add(new Shape(new float[] {22, 50f, 1f}, new float[] {0, -22}, 3));
+        worldObjects.add(new Shape(new float[] {1f, 50f, 22f}, new float[] {22, 0}, 3));
+        worldObjects.add(new Shape(new float[] {1f, 50f, 22f}, new float[] {-22, 0}, 3));
+
+        //Floor
+        worldObjects.add(new Shape(new float[] {22f, -.1f, 22f}, new float[] {0, 0}, 2));
 	}
 
 	@Override
@@ -177,7 +211,12 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glDepthFunc(GL2.GL_LEQUAL);
 		gl.glEnable(GL2.GL_BLEND);
 		gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
-		gl.glEnable(GL2.GL_CULL_FACE);
+		//gl.glEnable(GL2.GL_CULL_FACE);
+
+       //gl.glEnable(GL2.GL_FOG);
+       //gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
+       //gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
+       //gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
 	}
 
 	@Override
@@ -194,88 +233,41 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
 		robotZ += VELOCITY;
 
-		if(robotZ >= 22 || robotZ <= -22) {
-			robotZ = 0;
-			VELOCITY = 0f;
-		}
-
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
 
 		if (0 == cameraAngle) {
-			gl.glTranslatef(0.0f, -0.9f, -1.3f + robotZ);
+			gl.glTranslatef(0.0f + XCOORD, -0.9f, -1.3f + robotZ);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		} else {
-			gl.glTranslatef(0.0f, -0.9f, robotZ);
+			gl.glTranslatef(0.0f + XCOORD, -0.9f, robotZ);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		}
 
-		gl.glRotatef(-ROTATION, 0, 1, 0);
-		gl.glPushMatrix();
+        float[] center = robot.getCenter();
+
+        gl.glTranslatef(-(center[0] + XCOORD), -center[1], -(center[2] + robotZ));
+        gl.glRotatef(-ROTATION, 0f, 1f, 0f);
+        gl.glTranslatef((center[0] + XCOORD), center[1], (center[2] + robotZ));
+
 		gl.glPushMatrix();
 
+        drawWorldObjects(gl);
 		drawRobot(gl);
-		drawFloor(gl);
-		drawBoundaryWalls(gl);
 
 		for (Rotator r: rotators) {
 			r.update(1f);
 		}
 	}
 
-	private void drawBoundaryWalls(GL2 gl) {
-		gl.glPushMatrix();
-		gl.glTranslatef(0, -0.75f, 0);
-		drawAllFourWalls(gl);
-		gl.glPopMatrix();
-
-	}
-
-	private void drawAllFourWalls(GL2 gl) {
-		textures[1].bind(gl);
-		textures[1].enable(gl);
-		gl.glBegin(GL2.GL_QUADS);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(22, 0, 22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(22, 50, 22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(22, 50, -22);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(22, 0, -22);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, 0, -22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, 50, -22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(-22, 50, 22);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(-22, 0, 22);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, 0, 22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, 50, 22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(22, 50, 22);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(22, 0, 22);
-
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(22, 0, -22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(22, 50, -22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(-22, 50, -22);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(-22, 0, -22);
-
-		textures[1].disable(gl);
-
-		gl.glEnd();
-	}
+	private void drawWorldObjects(GL2 gl) {
+        worldObjects.forEach(shape ->  {
+            gl.glPushMatrix();
+            gl.glTranslatef(shape.xOffset, -.75f, shape.zOffset);
+            shape.draw(gl);
+            gl.glPopMatrix();
+        });
+    }
 
 	private void updateCamera(GL2 gl) {
 		gl.glViewport(0, 0, INITIAL_WIDTH, INITIAL_HEIGHT);
@@ -287,33 +279,16 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	}
 
 	private void drawRobot(GL2 gl) {
-		gl.glTranslatef(0, 0, robotZ);
+        float[] center = robot.getCenter();
+
+        gl.glTranslatef(-(center[0] + XCOORD), -center[1], -(center[2] + robotZ));
+        gl.glRotatef(ROTATION, 0f, 1f, 0f);
+        gl.glTranslatef((center[0] + XCOORD), center[1], (center[2] + robotZ));
+
+		gl.glTranslatef(XCOORD, 0, robotZ);
 		robot.draw(gl);
 		gl.glPopMatrix();
 		gl.glPopMatrix();
-	}
-
-	private void drawFloor(GL2 gl) {
-		gl.glPushMatrix();
-		gl.glTranslatef(0, -0.75f, 0);
-
-		textures[2].bind(gl);
-		textures[2].enable(gl);
-
-		gl.glBegin(GL2.GL_QUADS);
-		gl.glTexCoord2f(1, 1);
-		gl.glVertex3f(-22, 0, -22);
-		gl.glTexCoord2f(0, 1);
-		gl.glVertex3f(-22, 0, 22);
-		gl.glTexCoord2f(0, 0);
-		gl.glVertex3f(22, 0, 22);
-		gl.glTexCoord2f(1, 0);
-		gl.glVertex3f(22, 0, -22);
-		gl.glEnd();
-
-		textures[2].disable(gl);
-		gl.glPopMatrix();
-
 	}
 
 	@Override
@@ -354,22 +329,28 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			VELOCITY += .005f;
 		} else if(e.getKeyChar() == 's') {
 			VELOCITY += -.005f;
-		} else if(e.getKeyChar() == 'a') {
+		} else if(e.getKeyChar() == 'q') {
 			ROTATION += 1;
-		} else if(e.getKeyChar() == 'd') {
+		} else if(e.getKeyChar() == 'e') {
 			ROTATION += -1;
-		}
+		} else if(e.getKeyChar() == 'a') {
+            XCOORD += +.1f;
+        } else if(e.getKeyChar() == 'd') {
+            XCOORD += -.1f;
+        }
 	}
 
 	class Face {
 		private int[] indices;
 		private float[] colour;
+        private int texture;
 
-		public Face(int[] indices, float[] colour) {
+		public Face(int[] indices, float[] colour, int texture) {
 			this.indices = new int[indices.length];
 			this.colour = new float[colour.length];
 			System.arraycopy(indices, 0, this.indices, 0, indices.length);
 			System.arraycopy(colour, 0, this.colour, 0, colour.length);
+            this.texture = texture;
 		}
 
 		public void draw(GL2 gl, ArrayList<float[]> vertices, boolean useColour) {
@@ -411,148 +392,42 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		private float[] scale;
 		private Rotator rotator;
 
+        public float xOffset;
+        public float zOffset;
+
 		public Shape(float[] scale, Rotator rotator) {
 			// you could subclass Shape and override this with your own
 			init(scale, rotator);
 
 			// default shape: cube
-			vertices.add(new float[] { -1.0f, -1.0f, 1.0f });
-			vertices.add(new float[] { 1.0f, -1.0f, 1.0f });
-			vertices.add(new float[] { 1.0f, 1.0f, 1.0f });
-			vertices.add(new float[] { -1.0f, 1.0f, 1.0f });
-			vertices.add(new float[] { -1.0f, -1.0f, -1.0f });
-			vertices.add(new float[] { 1.0f, -1.0f, -1.0f });
-			vertices.add(new float[] { 1.0f, 1.0f, -1.0f });
-			vertices.add(new float[] { -1.0f, 1.0f, -1.0f });
+            addVerticesAndFaces(-1);
 
-			faces.add(new Face(new int[] { 0, 1, 2, 3 }, new float[] { 1.0f, 0.0f, 0.0f } ));
-			faces.add(new Face(new int[] { 0, 3, 7, 4 }, new float[] { 1.0f, 1.0f, 0.0f } ));
-			faces.add(new Face(new int[] { 7, 6, 5, 4 }, new float[] { 1.0f, 0.0f, 1.0f } ));
-			faces.add(new Face(new int[] { 2, 1, 5, 6 }, new float[] { 0.0f, 1.0f, 0.0f } ));
-			faces.add(new Face(new int[] { 3, 2, 6, 7 }, new float[] { 0.0f, 0.0f, 1.0f } ));
-			faces.add(new Face(new int[] { 1, 0, 4, 5 }, new float[] { 0.0f, 1.0f, 1.0f } ));
 		}
 
-		public Shape(String filename, float[] scale, Rotator rotator) {
-			init(scale, rotator);
+		public Shape(float[] scale, float[] offset, int texture) {
+            init(scale, null);
+            addVerticesAndFaces(texture);
+            xOffset = offset[0];
+            zOffset = offset[1];
+        }
 
-			// TODO Use as you like
-			// NOTE that there is limited error checking, to make this as flexible as possible
-			BufferedReader input;
-			String line;
-			String[] tokens;
+        private void addVerticesAndFaces(int texture) {
+            vertices.add(new float[] { -1.0f, -1.0f, 1.0f });
+            vertices.add(new float[] { 1.0f, -1.0f, 1.0f });
+            vertices.add(new float[] { 1.0f, 1.0f, 1.0f });
+            vertices.add(new float[] { -1.0f, 1.0f, 1.0f });
+            vertices.add(new float[] { -1.0f, -1.0f, -1.0f });
+            vertices.add(new float[] { 1.0f, -1.0f, -1.0f });
+            vertices.add(new float[] { 1.0f, 1.0f, -1.0f });
+            vertices.add(new float[] { -1.0f, 1.0f, -1.0f });
 
-			float[] vertex;
-			float[] colour;
-			String specifyingMaterial = null;
-			String selectedMaterial;
-			int[] face;
-
-			HashMap<String, float[]> materials = new HashMap<String, float[]>();
-			materials.put("default", new float[] {1,1,1});
-			selectedMaterial = "default";
-
-			// vertex positions start at 1
-			vertices.add(new float[] {0,0,0});
-
-			int currentColourIndex = 0;
-
-			// these are for error checking (which you don't need to do)
-			int lineCount = 0;
-			int vertexCount = 0, colourCount = 0, faceCount = 0;
-
-			try {
-				input = new BufferedReader(new FileReader(filename));
-
-				line = input.readLine();
-				while (line != null) {
-					lineCount++;
-					tokens = line.split("\\s+");
-
-					if (tokens[0].equals("v")) {
-						assert tokens.length == 4 : "Invalid vertex specification (line " + lineCount + "): " + line;
-
-						vertex = new float[3];
-						try {
-							vertex[0] = Float.parseFloat(tokens[1]);
-							vertex[1] = Float.parseFloat(tokens[2]);
-							vertex[2] = Float.parseFloat(tokens[3]);
-						} catch (NumberFormatException nfe) {
-							assert false : "Invalid vertex coordinate (line " + lineCount + "): " + line;
-						}
-
-						System.out.printf("vertex %d: (%f, %f, %f)\n", vertexCount + 1, vertex[0], vertex[1], vertex[2]);
-						vertices.add(vertex);
-
-						vertexCount++;
-					} else if (tokens[0].equals("newmtl")) {
-						assert tokens.length == 2 : "Invalid material name (line " + lineCount + "): " + line;
-						specifyingMaterial = tokens[1];
-					} else if (tokens[0].equals("Kd")) {
-						assert tokens.length == 4 : "Invalid colour specification (line " + lineCount + "): " + line;
-						assert faceCount == 0 && currentColourIndex == 0 : "Unexpected (late) colour (line " + lineCount + "): " + line;
-
-						colour = new float[3];
-						try {
-							colour[0] = Float.parseFloat(tokens[1]);
-							colour[1] = Float.parseFloat(tokens[2]);
-							colour[2] = Float.parseFloat(tokens[3]);
-						} catch (NumberFormatException nfe) {
-							assert false : "Invalid colour value (line " + lineCount + "): " + line;
-						}
-						for (float colourValue: colour) {
-							assert colourValue >= 0.0f && colourValue <= 1.0f : "Colour value out of range (line " + lineCount + "): " + line;
-						}
-
-						if (specifyingMaterial == null) {
-							System.out.printf("Error: no material name for colour %d: (%f %f %f)\n", colourCount + 1, colour[0], colour[1], colour[2]);
-						} else {
-							System.out.printf("material %s: (%f %f %f)\n", specifyingMaterial, colour[0], colour[1], colour[2]);
-							materials.put(specifyingMaterial, colour);
-						}
-
-						colourCount++;
-					} else if (tokens[0].equals("usemtl")) {
-						assert tokens.length == 2 : "Invalid material selection (line " + lineCount + "): " + line;
-
-						selectedMaterial = tokens[1];
-					} else if (tokens[0].equals("f")) {
-						assert tokens.length > 1 : "Invalid face specification (line " + lineCount + "): " + line;
-
-						face = new int[tokens.length - 1];
-						try {
-							for (int i = 1; i < tokens.length; i++) {
-								face[i - 1] = Integer.parseInt(tokens[i].split("/")[0]);
-							}
-						} catch (NumberFormatException nfe) {
-							assert false : "Invalid vertex index (line " + lineCount + "): " + line;
-						}
-
-						System.out.printf("face %d: [ ", faceCount + 1);
-						for (int index: face) {
-							System.out.printf("%d ", index);
-						}
-						System.out.printf("] using material %s\n", selectedMaterial);
-
-						colour = materials.get(selectedMaterial);
-						if (colour == null) {
-							System.out.println("Error: material " + selectedMaterial + " not found, using default.");
-							colour = materials.get("default");
-						}
-						faces.add(new Face(face, colour));
-
-						faceCount++;
-					} else {
-						System.out.println("Ignoring: " + line);
-					}
-
-					line = input.readLine();
-				}
-			} catch (IOException ioe) {
-				System.out.println(ioe.getMessage());
-				assert false : "Error reading input file " + filename;
-			}
-		}
+            faces.add(new Face(new int[] { 0, 1, 2, 3 }, new float[] { 1.0f, 0.0f, 0.0f } , texture));
+            faces.add(new Face(new int[] { 0, 3, 7, 4 }, new float[] { 1.0f, 1.0f, 0.0f } , texture));
+            faces.add(new Face(new int[] { 7, 6, 5, 4 }, new float[] { 1.0f, 0.0f, 1.0f } , texture));
+            faces.add(new Face(new int[] { 2, 1, 5, 6 }, new float[] { 0.0f, 1.0f, 0.0f } , texture));
+            faces.add(new Face(new int[] { 3, 2, 6, 7 }, new float[] { 0.0f, 0.0f, 1.0f } , texture));
+            faces.add(new Face(new int[] { 1, 0, 4, 5 }, new float[] { 0.0f, 1.0f, 1.0f } , texture));
+        }
 
 		protected void init(float[] scale, Rotator rotator) {
 			vertices = new ArrayList<float[]>();
@@ -610,11 +485,6 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			init(contents, positions);
 		}
 
-		public Structure(String filename, Shape[] contents, float[][] positions, float[] scale, Rotator rotator) {
-			super(filename, scale, rotator);
-			init(contents, positions);
-		}
-
 		private void init(Shape[] contents, float[][] positions) {
 			this.contents = new Shape[contents.length];
 			this.positions = new float[positions.length][3];
@@ -623,6 +493,30 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 				System.arraycopy(positions[i], 0, this.positions[i], 0, 3);
 			}
 		}
+
+		public float[] getCenter() {
+            float[] center = new float[3];
+            int total = 0;
+
+            for (Shape content : contents) {
+                content.vertices.forEach( vertice -> updateCenter(vertice, center));
+                total += content.vertices.size();
+            }
+
+            center[0] /= total;
+            center[1] /= total;
+            center[2] /= total;
+
+            return center;
+        }
+
+        private float[] updateCenter(float[] vertice, float[] center) {
+            center[0] += vertice[0];
+            center[1] += vertice[1];
+            center[2] += vertice[2];
+
+            return center;
+        }
 
 		public void draw(GL2 gl) {
 			super.draw(gl);
