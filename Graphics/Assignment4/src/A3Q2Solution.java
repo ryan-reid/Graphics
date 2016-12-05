@@ -27,6 +27,9 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
     private static float XCOORD = 0f;
     private static boolean JUMP = false;
 
+    private static float robotY = 0f;
+    private static boolean jumping = false;
+
 	// Name of the input file path
 	private static final String TEXTURE_PATH = "resources/";
 
@@ -234,25 +237,38 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
 
-        //if(robotCollided()) {
-        //    robotZ = 0;
-        //    VELOCITY = 0.015f;
-        //    ROTATION = 0;
-        //}
+        if(JUMP) {
+            if(jumping) {
+                robotY += .03f;
+            } else {
+                robotY -= .03f;
+            }
+
+            if(robotY >= 5) {
+                jumping = false;
+            } else if(robotY <= 0) {
+                robotY = 0;
+                JUMP = false;
+            }
+        }
+
+        if(robotCollided()) {
+            robotZ = 0;
+            VELOCITY = 0.015f;
+            ROTATION = 0;
+        }
+
+
 
 		if (1 == cameraAngle) {
-			gl.glTranslatef(0.0f + XCOORD, -0.9f, -1.3f + robotZ);
+			gl.glTranslatef(0.0f, -0.9f, -1.3f);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		} else {
-			gl.glTranslatef(0.0f + XCOORD, -0.9f, robotZ);
+			gl.glTranslatef(0.0f, -0.9f, 0);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		}
 
-        float[] center = robot.getCenter();
-
-        gl.glTranslatef(-(center[0] + XCOORD), -center[1], -(center[2] + robotZ));
-        gl.glRotatef(-ROTATION, 0f, 1f, 0f);
-        gl.glTranslatef((center[0] + XCOORD), center[1], (center[2] + robotZ));
+		gl.glTranslatef(-XCOORD, -robotY, -robotZ);
 
 		gl.glPushMatrix();
 
@@ -263,6 +279,55 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			r.update(1f);
 		}
 	}
+
+   private float[][] converToMultiDemArray(float[] vertices) {
+       return new float[][] { {vertices[0]}, {vertices[1]}, {vertices[2]}};
+   }
+
+    private float[][] transformPoints(float[][] transformation, float[] vertices) {
+        float[][] point = converToMultiDemArray(vertices);
+
+        return transformPoints(transformation, point);
+    }
+
+    private float[][] transformPoints(float[][] transformation, float[][] point) {
+        float[][] result = new float[3][1];
+
+        for (int k = 0; k < point[0].length; k++) {
+            for (int e = 0; e < 3; e++) {
+                float sum = 0;
+                for (int f = 0; f < point.length; f++) {
+                    sum += transformation[e][f] * point[f][k];
+                }
+                result[e][k] = sum;
+            }
+        }
+
+        return result;
+    }
+
+    public float[][] multiply(float[][] a, float[][] b) {
+        float[][] result = new float[4][4];
+
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                for (int k = 0; k < 4; k++)
+                    result[i][j] += a[i][k] * b[k][j];
+
+        return result;
+    }
+
+    private float[][] rotateMatrix(float theta) {
+        return new float[][]{{(float) Math.cos(theta), 0, -(float) Math.sin(theta), 0f}, {0, 1, 0, 0}, {((float) Math.sin(theta)), 0, (float) Math.cos(theta), 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+    }
+
+    private float[][] scaleMatrix(float scaleX, float scaleY, float scaleZ) {
+        return new float[][] { {scaleX, 0, 0, 0}, {0, scaleY, 0, 0}, {0, 0, scaleZ, 0}, {0, 0, 0, 1}};
+    }
+
+    private float[][] translationMatrix(float transX, float transY, float transZ) {
+        return new float[][] { {1, 0, 0, transX}, {0, 1, 0, transY}, {0, 0, 1, transZ}, {0, 0, 0, 1}};
+    }
 
 	private boolean robotCollided() {
         ArrayList<float[]> boundingBoxes = new ArrayList<>();
@@ -290,10 +355,18 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	private void drawWorldObjects(GL2 gl) {
         worldObjects.forEach(shape ->  {
             gl.glPushMatrix();
+
+            float[] center = shape.getShapeCenter();
+
+            gl.glTranslatef(-(center[0]), -center[1], -(center[2]));
+            gl.glRotatef(ROTATION, 0f, 1f, 0f);
+            gl.glTranslatef((center[0]), center[1], (center[2]));
+
             gl.glTranslatef(shape.xOffset, -.75f, shape.zOffset);
             shape.draw(gl);
             gl.glPopMatrix();
         });
+        gl.glPopMatrix();
     }
 
 	private void updateCamera(GL2 gl) {
@@ -306,15 +379,11 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	}
 
 	private void drawRobot(GL2 gl) {
-        float[] center = robot.getCenter();
+        gl.glPushMatrix();
 
-        gl.glTranslatef(-(center[0] + XCOORD), -center[1], -(center[2] + robotZ));
-        gl.glRotatef(ROTATION, 0f, 1f, 0f);
-        gl.glTranslatef((center[0] + XCOORD), center[1], (center[2] + robotZ));
+        gl.glTranslatef(XCOORD, robotY, robotZ);
 
-		gl.glTranslatef(XCOORD, 0, robotZ);
 		robot.draw(gl);
-		gl.glPopMatrix();
 		gl.glPopMatrix();
 	}
 
@@ -357,15 +426,16 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		} else if(e.getKeyChar() == 's') {
 			VELOCITY += -.005f;
 		} else if(e.getKeyChar() == 'q') {
-			ROTATION += 1;
-		} else if(e.getKeyChar() == 'e') {
 			ROTATION += -1;
+		} else if(e.getKeyChar() == 'e') {
+			ROTATION += 1;
 		} else if(e.getKeyChar() == 'a') {
             XCOORD += +.1f;
         } else if(e.getKeyChar() == 'd') {
             XCOORD += -.1f;
         } else if(e.getKeyChar() == ' ') {
             JUMP = true;
+            jumping = true;
         }
 	}
 
@@ -382,7 +452,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             this.texture = texture;
 		}
 
-		public float[] getBoundingBox(ArrayList<float[]> vertices) {
+		public float[] getBoundingBox(ArrayList<float[]> vertices, float[] scale) {
             float minX = 99;
             float minY = 99;
             float maxX = -99;
@@ -481,9 +551,44 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
         private ArrayList<float[]> getBoundingBox() {
             ArrayList<float[]> boundingBoxes = new ArrayList<>();
 
-            faces.forEach(face -> boundingBoxes.add(face.getBoundingBox(vertices)));
+            faces.forEach(face -> boundingBoxes.add(face.getBoundingBox(vertices, scale)));
 
             return boundingBoxes;
+        }
+
+        public float[] getShapeCenter() {
+            float[] center = new float[3];
+
+            for (float[] vertice : vertices) {
+                center = updateCenter(vertice, center);
+            }
+
+            float total = vertices.size();
+
+            center[0] /= total;
+            center[1] /= total;
+            center[2] /= total;
+
+            System.out.println(center[0] + " " + center[1] + " " + center[2]);
+
+            return center;
+        }
+
+        private float[] updateCenter(float[] vertex, float[] center) {
+            float[][] transform = translationMatrix(xOffset, 0, zOffset);
+            float[][] rotate = rotateMatrix(ROTATION);
+            float[][] scaleMatrix = scaleMatrix(scale[0], scale[1], scale[2]);
+
+            float[][] trans = multiply(transform, rotate);
+            trans = multiply(trans, scaleMatrix);
+
+            float[][] points = transformPoints(trans, vertex);
+
+            center[0] += points[0][0];
+            center[1] += points[1][0];
+            center[2] += points[2][0];
+
+            return  center;
         }
 
         private void addVerticesAndFaces(int texture) {
@@ -574,7 +679,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             int total = 0;
 
             for (Shape content : contents) {
-                content.vertices.forEach( vertice -> updateCenter(vertice, center));
+                content.vertices.forEach( vertice -> updateCenter(vertice, center, content.scale));
                 total += content.vertices.size();
             }
 
@@ -585,12 +690,19 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             return center;
         }
 
-        private float[] updateCenter(float[] vertice, float[] center) {
-            center[0] += vertice[0];
-            center[1] += vertice[1];
-            center[2] += vertice[2];
+        private void updateCenter(float[] vertice, float[] center, float[] scale) {
+            float[][] transform = translationMatrix(XCOORD, 0, robotZ);
+            float[][] rotate = rotateMatrix(ROTATION);
+            float[][] scaleMatrix = scaleMatrix(scale[0], scale[1], scale[2]);
 
-            return center;
+            float[][] trans = multiply(transform, rotate);
+            trans = multiply(trans, scaleMatrix);
+
+            float[][] points = transformPoints(trans, vertice);
+
+            center[0] += points[0][0];
+            center[1] += points[1][0];
+            center[2] += points[2][0];
         }
 
 		public void draw(GL2 gl) {
