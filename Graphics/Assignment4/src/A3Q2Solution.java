@@ -2,12 +2,9 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -28,6 +25,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	public static float VELOCITY = .015f;
 	public static float ROTATION = 0f;
     private static float XCOORD = 0f;
+    private static boolean JUMP = false;
 
 	// Name of the input file path
 	private static final String TEXTURE_PATH = "resources/";
@@ -151,35 +149,35 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 							},
 							new float[] {0.15f,0.25f,0.15f}, null);
 
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 20} , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 18} , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {5, 1}   , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 22}  , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {3, -14} , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {21, -20}, -1    ));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, -8}  , -1    ));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, 3}   , -1    ));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 12}  , -1    ));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-18, 18}, -1    ));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 20} , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 18} , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {5, 1}   , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 22}  , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {3, -14} , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {21, -20}, 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, -8}  , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, 3}   , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 12}  , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-18, 18}, 3));
 
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-2, 9}      , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-8, 0}      , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -5}    , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -8}    , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-17, -2}    , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 4f, (float) Math.random() * 2}, new float[] {-19, 16}    , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {4, -4}      , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, -9}     , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {12, -11}    , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {9, -19}     , -1));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-15, -3}    , -1));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-2, 9}  , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-8, 0}  , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -5}, 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -8}, 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-17, -2}, 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 4f, (float) Math.random() * 2}, new float[] {-19, 16}, 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {4, -4}  , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, -9} , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {12, -11}, 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {9, -19} , 3));
+        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-15, -3}, 3));
 
 
         //Walls
-        worldObjects.add(new Shape(new float[] {22, 50f, 1f}, new float[] {0, 22}, 3));
-        worldObjects.add(new Shape(new float[] {22, 50f, 1f}, new float[] {0, -22}, 3));
-        worldObjects.add(new Shape(new float[] {1f, 50f, 22f}, new float[] {22, 0}, 3));
-        worldObjects.add(new Shape(new float[] {1f, 50f, 22f}, new float[] {-22, 0}, 3));
+        worldObjects.add(new Shape(new float[] {22, 50f, -.1f}, new float[] {0, 22},  1));
+        worldObjects.add(new Shape(new float[] {22, 50f, -.1f}, new float[] {0, -22}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 22f}, new float[] {22, 0}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 22f}, new float[] {-22, 0},1));
 
         //Floor
         worldObjects.add(new Shape(new float[] {22f, -.1f, 22f}, new float[] {0, 0}, 2));
@@ -236,7 +234,13 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
 
-		if (0 == cameraAngle) {
+        //if(robotCollided()) {
+        //    robotZ = 0;
+        //    VELOCITY = 0.015f;
+        //    ROTATION = 0;
+        //}
+
+		if (1 == cameraAngle) {
 			gl.glTranslatef(0.0f + XCOORD, -0.9f, -1.3f + robotZ);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		} else {
@@ -260,6 +264,29 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		}
 	}
 
+	private boolean robotCollided() {
+        ArrayList<float[]> boundingBoxes = new ArrayList<>();
+
+        for (Shape content : robot.contents) {
+            boundingBoxes.addAll(content.getBoundingBox());
+        }
+
+        for(Shape object : worldObjects) {
+            for(float[] box : object.getBoundingBox()) {
+                for(float[] roboBox : boundingBoxes) {
+                    if(roboBox[2] < box[3]
+                    || roboBox[3] > box[2]
+                    || roboBox[1] > box[0]
+                    || roboBox[0] < box[1]) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
 	private void drawWorldObjects(GL2 gl) {
         worldObjects.forEach(shape ->  {
             gl.glPushMatrix();
@@ -275,7 +302,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
 
-		glu.gluPerspective (110, ar, 1.0f, 50.0);
+		glu.gluPerspective (110, ar, .5f, 50.0);
 	}
 
 	private void drawRobot(GL2 gl) {
@@ -319,7 +346,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
 	@Override
 	public void keyTyped(KeyEvent e) {
-		if (e.getKeyChar() == ' ') {
+		if (e.getKeyChar() == (char) 10) {
 			cameraAngle++;
 			if (cameraAngle == 2) {
 				cameraAngle = 0;
@@ -337,6 +364,8 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             XCOORD += +.1f;
         } else if(e.getKeyChar() == 'd') {
             XCOORD += -.1f;
+        } else if(e.getKeyChar() == ' ') {
+            JUMP = true;
         }
 	}
 
@@ -353,29 +382,67 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             this.texture = texture;
 		}
 
+		public float[] getBoundingBox(ArrayList<float[]> vertices) {
+            float minX = 99;
+            float minY = 99;
+            float maxX = -99;
+            float maxY = -99;
+            float[] box = new float[4];
+
+            for(int i : indices) {
+                if(vertices.get(i)[0] <= minX) {
+                    minX = vertices.get(i)[0];
+                }
+                if(vertices.get(i)[0] >= maxX) {
+                    maxX = vertices.get(i)[0];
+                }
+                if(vertices.get(i)[1] <= minY) {
+                    minY = vertices.get(i)[1];
+                }
+                if(vertices.get(i)[1] >= maxY) {
+                    maxY = vertices.get(i)[1];
+                }
+            }
+
+            box[0] = minX;
+            box[1] = maxX;
+            box[2] = minY;
+            box[3] = maxY;
+
+            return box;
+        }
+
 		public void draw(GL2 gl, ArrayList<float[]> vertices, boolean useColour) {
-			if (useColour) {
+			if (useColour && texture == -1) {
 				if (colour.length == 3)
 					gl.glColor3f(colour[0], colour[1], colour[2]);
 				else
 					gl.glColor4f(colour[0], colour[1], colour[2], colour[3]);
 			}
 
-			if (indices.length == 1) {
-				gl.glBegin(GL2.GL_POINTS);
-			} else if (indices.length == 2) {
-				gl.glBegin(GL2.GL_LINES);
-			} else if (indices.length == 3) {
-				gl.glBegin(GL2.GL_TRIANGLES);
-			} else if (indices.length == 4) {
-				gl.glBegin(GL2.GL_QUADS);
-			} else {
-				gl.glBegin(GL2.GL_POLYGON);
-			}
+           if(texture != -1) {
+               textures[texture].bind(gl);
+               textures[texture].enable(gl);
 
-			for (int i: indices) {
-				gl.glVertex3f(vertices.get(i)[0], vertices.get(i)[1], vertices.get(i)[2]);
-			}
+               gl.glBegin(GL2.GL_QUADS);
+
+               gl.glTexCoord2f(1, 1);
+               gl.glVertex3f(vertices.get(indices[0])[0], vertices.get(indices[0])[1], vertices.get(indices[0])[2]);
+               gl.glTexCoord2f(0, 1);
+               gl.glVertex3f(vertices.get(indices[1])[0], vertices.get(indices[1])[1], vertices.get(indices[1])[2]);
+               gl.glTexCoord2f(0, 0);
+               gl.glVertex3f(vertices.get(indices[2])[0], vertices.get(indices[2])[1], vertices.get(indices[2])[2]);
+               gl.glTexCoord2f(1, 0);
+               gl.glVertex3f(vertices.get(indices[3])[0], vertices.get(indices[3])[1], vertices.get(indices[3])[2]);
+
+               textures[texture].disable(gl);
+            } else {
+               gl.glBegin(GL2.GL_QUADS);
+                for(int i : indices) {
+                    gl.glVertex3f(vertices.get(i)[0], vertices.get(i)[1], vertices.get(i)[2]);
+                }
+            }
+
 
 			gl.glEnd();
 		}
@@ -409,6 +476,14 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             addVerticesAndFaces(texture);
             xOffset = offset[0];
             zOffset = offset[1];
+        }
+
+        private ArrayList<float[]> getBoundingBox() {
+            ArrayList<float[]> boundingBoxes = new ArrayList<>();
+
+            faces.forEach(face -> boundingBoxes.add(face.getBoundingBox(vertices)));
+
+            return boundingBoxes;
         }
 
         private void addVerticesAndFaces(int texture) {
