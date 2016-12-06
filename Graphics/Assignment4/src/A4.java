@@ -1,1682 +1,730 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.imageio.ImageIO;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.*;
 import com.jogamp.opengl.glu.*;
-
 import com.jogamp.opengl.util.awt.ImageUtil;
 import com.jogamp.opengl.util.texture.Texture;
 import com.jogamp.opengl.util.texture.TextureIO;
 import com.jogamp.opengl.util.texture.awt.AWTTextureIO;
 
-public class A4 implements GLEventListener, KeyListener, MouseListener, MouseMotionListener {
-    public static final boolean TRACE = false;
+/*
+Texture links
+08.jpg - http://www.textures.com/download/brickssmallold0090/72049
+floor.jpg - http://www.textures.com/download/woodfine0001/14121
+wood.jpg - http://www.textures.com/download/woodbamboo0085/124322
+metal.jpg - http://www.textures.com/download/metalbare0064/5350
+*/
 
-    public static final String WINDOW_TITLE = "A4: [Kenny Hong]";
-    public static final int INITIAL_WIDTH = 640;
-    public static final int INITIAL_HEIGHT = 640;
+public class A4 implements GLEventListener, KeyListener {
+	public static final boolean TRACE = false;
 
-    private static final GLU glu = new GLU();
+	public static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
+	public static final int INITIAL_WIDTH = 640;
+	public static final int INITIAL_HEIGHT = 640;
+	public static float VELOCITY = .05f;
+	public static float ROTATION = 0f;
+    private static float XCOORD = 0f;
+    private static boolean JUMP = false;
 
-    private static final String TEXTURE_PATH = "resources/";
+    private static float robotY = 0f;
+    private static boolean jumping = false;
 
-    // TODO: change this
-    public static final String[] TEXTURE_FILES = { "circle.png", "circle.png", "circle.png", "circle.png", "circle.png", "circle.png", "circle.png", "circle.png", "circle.png"};
+	// Name of the input file path
+	private static final String TEXTURE_PATH = "resources/";
 
-    public static void main(String[] args) {
-        final JFrame frame = new JFrame(WINDOW_TITLE);
+	public static final String[] TEXTURE_FILES = { "ObjectText.jpg", "08.jpg", "floor.jpg", "wood.jpg", "metal.jpg"};
 
-        frame.addWindowListener(new WindowAdapter() {
-            public void windowClosing(WindowEvent e) {
-                if (TRACE)
-                    System.out.println("closing window '" + ((JFrame)e.getWindow()).getTitle() + "'");
-                System.exit(0);
+	private static final GLU glu = new GLU();
+
+	public static void main(String[] args) {
+		final JFrame frame = new JFrame(WINDOW_TITLE);
+
+		frame.addWindowListener(new WindowAdapter() {
+			public void windowClosing(WindowEvent e) {
+				if (TRACE)
+					System.out.println("closing window '" + ((JFrame)e.getWindow()).getTitle() + "'");
+				System.exit(0);
+			}
+		});
+
+		final GLProfile profile = GLProfile.get(GLProfile.GL2);
+		final GLCapabilities capabilities = new GLCapabilities(profile);
+		final GLCanvas canvas = new GLCanvas(capabilities);
+		try {
+			Object self = self().getConstructor().newInstance();
+			self.getClass().getMethod("setup", new Class[] { GLCanvas.class }).invoke(self, canvas);
+			canvas.addGLEventListener((GLEventListener)self);
+			canvas.addKeyListener((KeyListener)self);
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(1);
+		}
+		canvas.setSize(INITIAL_WIDTH, INITIAL_HEIGHT);
+
+		frame.getContentPane().add(canvas);
+		frame.pack();
+		frame.setVisible(true);
+
+		canvas.requestFocusInWindow();
+
+		if (TRACE)
+			System.out.println("-> end of main().");
+	}
+
+	private static Class<?> self() {
+		// This ugly hack gives us the containing class of a static method 
+		return new Object() { }.getClass().getEnclosingClass();
+	}
+
+	/*** Instance variables and methods ***/
+
+	private float ar;
+	private int cameraAngle = 0;
+	private Texture[] textures;
+	private Structure robot;
+	private Rotator[] rotators;
+	private float robotZ;
+    private ArrayList<Shape> worldObjects = new ArrayList<>();
+
+	public void setup(final GLCanvas canvas) {
+		// Called for one-time setup
+		if (TRACE)
+			System.out.println("-> executing setup()");
+
+		new Timer().scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				canvas.repaint();
+			}
+		}, 1000, 1000/60);
+
+		// TODO: Add/modify code here
+		Rotator head = new Rotator(new float[]{0,0,0}, new float[]{0,1,0}, 0, -30, 30, 1);
+		Rotator rightShoulder = new Rotator(new float[]{0,0,0}, new float[]{1,0,0}, 30, -30, 30, 1);
+		Rotator rightElbow = new Rotator(new float[]{0,0.075f,0}, new float[]{1,0,0}, 30, -30, 30, 1);
+		Rotator leftShoulder = new Rotator(new float[]{0,0,0}, new float[]{1,0,0}, -30, -30, 30, 1);
+		Rotator leftElbow = new Rotator(new float[]{0,0.075f,0}, new float[]{1,0,0}, -30, -30, 30, 1);
+		Rotator rightThigh = new Rotator(new float[]{0,0.15f,0}, new float[]{1,0,0}, -30, -30, 30, 1);
+		Rotator rightKnee = new Rotator(new float[]{0,0.15f,0}, new float[]{1,0,0}, 0, 0, 45, 0.75f);
+		Rotator leftThigh = new Rotator(new float[]{0,0.15f,0}, new float[]{1,0,0}, 30, -30, 30, 1);
+		Rotator leftKnee = new Rotator(new float[]{0,0.15f,0}, new float[]{1,0,0}, 45, 0, 45, 0.75f);
+		rotators = new Rotator[] {
+			head,
+			rightShoulder,
+			rightElbow,
+			leftShoulder,
+			leftElbow,
+			rightThigh,
+			rightKnee,
+			leftThigh,
+			leftKnee
+		};
+		robot = new Structure(
+							new Shape[] {
+								new Shape(new float[] {0.1f,0.15f,0.1f}, head, 4),
+								new Structure(new Shape[] {
+										new Shape(new float[] {0.06f, -0.125f, 0.06f}, rightElbow, 4)},
+										new float[][] {{-0.058f, -0.15f, -0.001f}},
+										new float[] {0.125f, 0.075f, 0.075f}, rightShoulder, 4),
+								new Structure(new Shape[] {
+										new Shape(new float[] {0.06f, -0.125f, 0.06f}, leftElbow, 4)},
+										new float[][] {{0.058f, -0.15f, -0.001f}},
+										new float[] {0.125f, 0.075f, 0.075f}, leftShoulder, 4),
+								new Structure(new Shape[] {
+										new Shape(new float[] {0.1f, 0.15f, 0.1f}, rightKnee, 4)},
+										new float[][] {{0.0f, -0.3f, 0.0f}},
+										new float[] {0.1f, 0.15f, 0.1f}, rightThigh, 4),
+								new Structure(new Shape[] {
+										new Shape(new float[] {0.1f, 0.15f, 0.1f}, leftKnee, 4)},
+										new float[][] {{0.0f, -0.3f, 0.0f}},
+										new float[] {0.1f, 0.15f, 0.1f}, leftThigh, 4)
+							}, new float[][] {
+								{0, 0.4f, 0 },
+								{-0.25f, 0.15f, 0},
+								{0.25f, 0.15f, 0},
+								{-0.15f, -0.3f, 0 },
+								{0.15f, -0.3f, 0 }
+							},
+							new float[] {0.15f,0.25f,0.15f}, null, 4);
+
+
+        createTwoObjectsEveryFiveBlocks();
+
+        //Walls
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 0}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 0},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 50}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 50},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 100}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 100},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 150}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 150},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 200}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 200},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 250}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 250},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 300}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 300},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 350}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 350},1));
+
+        worldObjects.add(new Shape(new float[] {4, 50f, -.1f}, new float[] {0, -.75f, 400},  1));
+
+        //Floor
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 0}, 2));
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 100}, 2));
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 200}, 2));
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 300}, 2));
+	}
+
+	private void createTwoObjectsEveryFiveBlocks() {
+        for(int i = 2; i <= 80; i++) {
+            int count = 0;
+            float maxX = 3.5f;
+            float minX = -3.5f;
+
+            int maxZ = i * 5;
+            int minZ = (i - 1) * 5;
+
+
+            while(count < 1) {
+                Random random = new Random();
+                float xCoord =  (random.nextFloat() * ((maxX - minX) + minX)) * (random.nextBoolean() ? -1 : 1);
+                random = new Random();
+                float zCoord = random.nextFloat() * ( maxZ - minZ) + minZ;
+
+                if(zCoord - 1 > 0) {
+                    worldObjects.add(new Shape(new float[] {1, 2f, 1}, new float[] {xCoord, -.75f, zCoord}, 3));
+                    count++;
+                }
             }
-        });
-
-        final GLProfile profile = GLProfile.get(GLProfile.GL2);
-        final GLCapabilities capabilities = new GLCapabilities(profile);
-        final GLCanvas canvas = new GLCanvas(capabilities);
-        try {
-            Object self = self().getConstructor().newInstance();
-            self.getClass().getMethod("setup", new Class[] { GLCanvas.class }).invoke(self, canvas);
-            canvas.addGLEventListener((GLEventListener)self);
-            canvas.addKeyListener((KeyListener)self);
-            canvas.addMouseListener((MouseListener)self);
-            canvas.addMouseMotionListener((MouseMotionListener)self);
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(1);
         }
-        canvas.setSize(INITIAL_WIDTH, INITIAL_HEIGHT);
-
-        frame.getContentPane().add(canvas);
-        frame.pack();
-        frame.setVisible(true);
-
-        canvas.requestFocusInWindow();
-
-        if (TRACE)
-            System.out.println("-> end of main().");
     }
 
-    private static Class<?> self() {
-        // This ugly hack gives us the containing class of a static method
-        return new Object() { }.getClass().getEnclosingClass();
-    }
+	@Override
+	public void init(GLAutoDrawable drawable) {
+		// Called when the canvas is (re-)created - use it for initial GL setup
+		if (TRACE)
+			System.out.println("-> executing init()");
 
-    /*** Instance variables and methods ***/
+		final GL2 gl = drawable.getGL().getGL2();
 
-    private String direction;
-    private Texture[] textures;
-    private int isometric = 1;
-    //float testAngle = 0.0f;
-    private float qBertX = 0.0f;
-    private float qBertZ = -12.0f;
-    private float qBertY = 14.0f;
-    private float qbNewX = 0.0f;
-    private float qbNewZ = -12.0f;
-    private float qbNewY = 14.0f;
-    private boolean turnLeft = false;
-    private boolean turnRight = false;
-    private float newAngle = 45.0f;
-    private float qBertAngle = 45.0f;
-    private int faceDirection = 0;
-    private int faceDirectionFP = 0;
-    private boolean isTurning = false;
-    private boolean isMoving = false;
-    private float t = 0.0f;
-    private float fpX = 0;
-    private float fpY =  0f;
-    private float fpZ = 0f;
-    private float fpNX  = 0f;
-    private float fpNY  = 0f;
-    private float fpNZ  = 0f;
-    private float fpAngle = 0;
-    private float newFpAngle = 0;
+		textures = new Texture[TEXTURE_FILES.length];
+		try {
+			for (int i = 0; i < TEXTURE_FILES.length; i++) {
+				File infile = new File(TEXTURE_PATH + TEXTURE_FILES[i]);
+				BufferedImage image = ImageIO.read(infile);
+				ImageUtil.flipImageVertically(image);
+				textures[i] = TextureIO.newTexture(AWTTextureIO.newTextureData(gl.getGLProfile(), image, false));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-    private boolean newScene = true;
-    private boolean justChanged = false;
-    private float fpTestAngleX = 10.5f;
-    private float fpTestAngleY = 78.5f;
-    private float fpTestAngleZ = 11.0f;
-
-    private float fpTestTX = 12.5f;
-    private float fpTestTY = -14.0f;
-    private float fpTestTZ = -17.0f;
-
-    private float sceneNX = 1.55f;
-    private float sceneNY = -1.5f;
-    private float sceneNZ = -3.4f;
-
-    private float specialAngle1 = 0.0f;
-    private float specialAngle2 = 0.0f;
-
-    private float[] colour = new float[] { 0.2f, 0.6f, 1.0f, 0.0f };
-    private boolean enableFog = false;
-    private float density = 0.045f;
-
-    private float prevDragX;
-    private float prevDragY;
-
-    private float viewX = 0.0f;
-    private float viewY = 42.0f;
-
-
-
-
-    // TODO: Add instance variables here
-
-
-    public void setup(final GLCanvas canvas) {
-        // Called for one-time setup
-        if (TRACE)
-            System.out.println("-> executing setup()");
-
-        new Timer().scheduleAtFixedRate(new TimerTask() {
-            public void run() {
-                canvas.repaint();
-            }
-        }, 1000, 1000/60);
-
-        // TODO: Add code here
-    }
-
-    @Override
-    public void init(GLAutoDrawable drawable) {
-        // Called when the canvas is (re-)created - use it for initial GL setup
-        if (TRACE)
-            System.out.println("-> executing init()");
-
-        final GL2 gl = drawable.getGL().getGL2();
-
-        textures = new Texture[TEXTURE_FILES.length];
-        try {
-            for (int i = 0; i < TEXTURE_FILES.length; i++) {
-                File infile = new File(TEXTURE_PATH + TEXTURE_FILES[i]);
-                BufferedImage image = ImageIO.read(infile);
-                ImageUtil.flipImageVertically(image);
-                textures[i] = TextureIO.newTexture(AWTTextureIO.newTextureData(gl.getGLProfile(), image, false));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        // TODO: Add code here
         gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         gl.glEnable(GL2.GL_DEPTH_TEST);
         gl.glDepthFunc(GL2.GL_LEQUAL);
         gl.glEnable(GL2.GL_BLEND);
         gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
-        //gl.glEnable(GL2.GL_CULL_FACE);
+        gl.glEnable(GL2.GL_CULL_FACE);
+
+       gl.glEnable(GL2.GL_FOG);
+       gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
+       gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
+       gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
+
+	}
+
+	@Override
+	public void display(GLAutoDrawable drawable) {
+		// Draws the display
+		if (TRACE)
+			System.out.println("-> executing display()");
+
+		final GL2 gl = drawable.getGL().getGL2();
+
+		gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
+
+		updateCamera(gl);
+
+		robotZ += VELOCITY;
+
+		gl.glMatrixMode(GL2.GL_MODELVIEW);
+		gl.glLoadIdentity();
+
+        if(JUMP) {
+            if(jumping) {
+                robotY += .05f;
+            } else {
+                robotY -= .05f;
+            }
+
+            if(robotY >= 5) {
+                jumping = false;
+            } else if(robotY <= 0) {
+                robotY = 0;
+                JUMP = false;
+            }
+        }
+
+        if(robotCollided()) {
+            robotZ = 0;
+            XCOORD = 0;
+            VELOCITY = 0.05f;
+        }
+
+		if (1 == cameraAngle) {
+			gl.glTranslatef(0.0f, -0.9f, -2.3f);
+			gl.glRotatef(-180, 0f, 1f, 0f);
+            gl.glRotatef(-15, 1f, 0f, 0f);
+		} else {
+			gl.glTranslatef(0.0f, -0.9f, 0);
+			gl.glRotatef(-180, 0f, 1f, 0f);
+		}
 
 
+        gl.glTranslatef(-XCOORD, -robotY, -robotZ);
+
+		gl.glPushMatrix();
+
+        drawRobot(gl);
+
+        drawWorldObjects(gl);
+
+		for (Rotator r: rotators) {
+			r.update(1f);
+		}
+	}
+
+   private float[][] converToMultiDemArray(float[] vertices) {
+       return new float[][] { {vertices[0]}, {vertices[1]}, {vertices[2]}, {1}};
+   }
+
+    private float[][] transformPoints(float[][] transformation, float[] vertices) {
+        float[][] point = converToMultiDemArray(vertices);
+
+        return transformPoints(transformation, point);
     }
 
-    @Override
-    public void display(GLAutoDrawable drawable) {
-        // Draws the display
-        if (TRACE)
-            System.out.println("-> executing display()");
+    private float[][] transformPoints(float[][] transformation, float[][] point) {
+        float[][] result = new float[4][1];
 
-        final GL2 gl = drawable.getGL().getGL2();
-
-        gl.glClear(GL2.GL_COLOR_BUFFER_BIT | GL2.GL_DEPTH_BUFFER_BIT);
-
-        gl.glMatrixMode(GL2.GL_MODELVIEW);
-
-        gl.glLoadIdentity();
-
-        if (enableFog)
-        {
-            // You can set this up in init() if you don't need to change it
-            gl.glEnable(GL2.GL_FOG);
-            gl.glFogfv(GL2.GL_FOG_COLOR, colour, 0);
-            gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
-            gl.glFogf(GL2.GL_FOG_DENSITY, density);
-        }
-        else
-        {
-            gl.glDisable(GL2.GL_FOG);
+        for (int k = 0; k < point[0].length; k++) {
+            for (int e = 0; e < 4; e++) {
+                float sum = 0;
+                for (int f = 0; f < point.length; f++) {
+                    sum += transformation[e][f] * point[f][k];
+                }
+                result[e][k] = sum;
+            }
         }
 
-        gl.glPushMatrix();
+        return result;
+    }
 
-        if(newScene)
-        {
-            newScene = false;
-            isometric = 0;
+    public float[][] multiply(float[][] a, float[][] b) {
+        float[][] result = new float[4][4];
+
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                for (int k = 0; k < 4; k++)
+                    result[i][j] += a[i][k] * b[k][j];
+
+        return result;
+    }
+
+    private float[][] rotateMatrix(float theta) {
+        return new float[][]{{(float) Math.cos(theta), 0, -(float) Math.sin(theta), 0f}, {0, 1, 0, 0}, {((float) Math.sin(theta)), 0, (float) Math.cos(theta), 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+    }
+
+    private float[][] scaleMatrix(float scaleX, float scaleY, float scaleZ) {
+        return new float[][] { {scaleX, 0, 0, 0}, {0, scaleY, 0, 0}, {0, 0, scaleZ, 0}, {0, 0, 0, 1}};
+    }
+
+    private float[][] translationMatrix(float transX, float transY, float transZ) {
+        return new float[][] { {1, 0, 0, transX}, {0, 1, 0, transY}, {0, 0, 1, transZ}, {0, 0, 0, 1}};
+    }
+
+	private boolean robotCollided() {
+        ArrayList<float[]> boundingBoxes = new ArrayList<>();
+
+        for (Shape content : robot.contents) {
+            boundingBoxes.addAll(content.getBoundingBox(true));
         }
 
-        if(isometric == 0)
-        {
-
-            enableFog = false;
-            gl.glTranslatef(sceneNX, sceneNY, sceneNZ);
-
-            gl.glRotatef(35.0f, 1.0f, 0.0f, 0.0f);
-            gl.glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
-
-            gl.glScalef(0.18f, 0.18f, 0.18f);
-        }
-        else
-        {
-            enableFog = true;
-            justChanged = false;
-            //gl.glRotatef(viewY, 1.0f, 0.0f, 0.0f);
-            //gl.glRotatef(viewX, 0.0f, 0.1f, 0.0f);
-            if(turnLeft || turnRight)
-            {
-                if (turnLeft) {
-                    fpAngle = (fpAngle + 5.0f ) % 360;
-
-                    if (fpAngle == newFpAngle) {
-                        turnLeft = false;
-                        isTurning = false;
-                        fpAngle = newFpAngle;
+        for(Shape object : worldObjects) {
+            for(float[] box : object.getBoundingBox(false)) {
+                for(float[] roboBox : boundingBoxes) {
+                    if(roboBox[0] <= box[1] && roboBox[1] >= box[0]) {
+                        if(roboBox[2] <= box[3] && roboBox[3] >= box[2]) {
+                            if(roboBox[4] <= box[5] && roboBox[5] >= box[4]) {
+                                return true;
+                            }
+                        }
                     }
                 }
-                if (turnRight) {
-                    fpAngle = (fpAngle + 355.0f) % 360;
-
-                    if (fpAngle == newFpAngle) {
-                        turnRight = false;
-                        isTurning = false;
-                        fpAngle = newFpAngle;
-                    }
-                }
-                //gl.glRotatef(-fpAngle, 0.0f, 1.0f, 0.0f);
             }
-            else
-            {
-                gl.glRotatef(-newFpAngle, 0.0f, 1.0f, 0.0f);
-                fpAngle = newFpAngle;
-            }
-
-           // glu.gluLookAt(3.0f , 3f , -16.0f , 0 , 0 , 0, 0 , 4 , 4);
-            gl.glTranslatef(fpTestTX, fpTestTY, fpTestTZ);
-            gl.glRotatef(fpTestAngleY, 0.0f, 1.0f, 0.0f);
-            gl.glRotatef(fpTestAngleX, 1.0f,0.0f,0.0f);
-            gl.glRotatef(fpTestAngleZ, 0.0f, 0.0f, 1.0f);
-            if(isMoving)
-            {
-                fpZ = lerp(t, fpZ, fpNZ);
-                fpY = lerp(t, fpY, fpNY);
-                fpX = lerp(t, fpX, fpNX);
-                t += 0.03 * Math.PI;
-                gl.glTranslatef(fpX,  fpY + (float)Math.sin(t * Math.PI), fpZ);
-                if(t > 1)
-                {
-                    isMoving = false;
-                    t = 0;
-                    fpZ = fpNZ;
-                    fpY = fpNY;
-                    fpX = fpNX;
-                }
-            }
-            else
-            {
-                gl.glTranslatef(fpNX, fpNY, fpNZ);
-                fpZ = fpNZ;
-                fpY = fpNY;
-                fpX = fpNX;
-            }
-
         }
-        gl.glPushMatrix();
-        gl.glScalef(150.0f, 1.0f, 155f);
-        gl.glTranslatef(0.0f, 0.0f, -.5f);
-        drawFloorFP(gl);
-        gl.glPopMatrix();
 
-
-        drawStage(gl);
-
-        gl.glPopMatrix();
+        return false;
     }
 
-    @Override
-    public void dispose(GLAutoDrawable drawable) {
-        // Called when the canvas is destroyed (reverse anything from init)
-        if (TRACE)
-            System.out.println("-> executing dispose()");
-    }
-
-    public void drawOddish(GL2 gl)
-    {
-
-        float x, y;
-        final float INC = 0.0001f;
-        GLUquadric gluNewQuadric = glu.gluNewQuadric();
-
-
-        gl.glPushMatrix();
-        gl.glTranslatef(-1.0f, 0.5f, -0.76F);
-        gl.glRotatef(135.0f, 0.0f, -1.0f ,0.0f);
-        gl.glScalef(0.2f, 0.3f, 1);
-        gl.glColor3f(1.0f, 0.4f, 0.8f);
-        gl.glBegin(GL2.GL_TRIANGLE_FAN);
-        gl.glVertex2f(0, 0);
-        for (float t = 0.5f; t <= 1.00f; t += INC) {
-            x = (float)(Math.cos(2.0f * Math.PI * t));
-            y = (float)(Math.sin(2.0f * Math.PI * t));
-            gl.glVertex2f(x, y);
-        }
-        gl.glEnd();
-        gl.glPopMatrix();
-
-        gl.glColor3f(1.0f,0.0f,0.0f);
-        gl.glPushMatrix();
-        gl.glTranslatef(-0.60f, 0.5f, -1.0f);
-        gl.glRotatef(65.0f, 0.0f, 1.0f ,0.0f);
-        gl.glRotatef(90.0f, 1.0f, 0.0f ,0.0f);
-        glu.gluSphere(gluNewQuadric, 0.1f, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glColor3f(1.0f,0.0f,0.0f);
-        gl.glPushMatrix();
-        gl.glTranslatef(-1.15f, 0.5f, -0.325f);
-        gl.glRotatef(65.0f, 0.0f, 1.0f ,0.0f);
-        gl.glRotatef(90.0f, 1.0f, 0.0f ,0.0f);
-        glu.gluSphere(gluNewQuadric, 0.1f, 25, 25);
-        gl.glPopMatrix();
-
-
-        gl.glColor3f(0.2f, 0.8f, 0.2f);
-        gl.glPushMatrix();
-        gl.glTranslatef(0.2f, 2.7f, 0.4f);
-        gl.glRotatef(45.0f, 0.0f, -1.0f ,0.0f);
-        gl.glRotatef(90.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(0.3f, 1.0f, 1.3f);
-        glu.gluCylinder(gluNewQuadric, 0.02, 0.7, 1.5, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glColor3f(0.2f,0.4f,1.0f);
-        gl.glPushMatrix();
-        gl.glTranslatef(0.0f, 0.2f, 0.0f);
-        gl.glRotatef(45.0f, 0.0f, -1.0f ,0.0f);
-        gl.glRotatef(90.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(1.3f, 1.6f, 1.3f);
-        glu.gluSphere(gluNewQuadric, 0.9f, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glColor3f(0.2f, 0.8f, 0.2f);
-        gl.glPushMatrix();
-        gl.glTranslatef(-1.2f, 1.7f, 1.6f);
-        gl.glRotatef(45.0f, 0.0f, -1.0f ,0.0f);
-        gl.glRotatef(155.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(0.3f, 0.8f, 1.3f);
-        glu.gluCylinder(gluNewQuadric, 0.02, 0.7, 1.5, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glColor3f(0.2f, 0.8f, 0.2f);
-        gl.glPushMatrix();
-        gl.glTranslatef(1.7f, 1.7f, -1.2f);
-        gl.glRotatef(45.0f, 0.0f, -1.0f ,0.0f);
-        gl.glRotatef(25.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(0.3f, 0.8f, 1.3f);
-        glu.gluCylinder(gluNewQuadric, 0.02, 0.7, 1.5,25, 25);
-        gl.glPopMatrix();gl.glColor3f(0.2f, 0.8f, 0.2f);
-
-        gl.glPushMatrix();
-        gl.glTranslatef(1.0f, 2.2f,-0.3f);
-        gl.glRotatef(45.0f, 0.0f, -1.0f ,0.0f);
-        gl.glRotatef(60.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(0.3f, 0.8f, 1.3f);
-        glu.gluCylinder(gluNewQuadric, 0.02, 0.7, 1.5, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glPushMatrix();
-        gl.glTranslatef(-0.6f, 2.2f, 1.1f);
-        gl.glRotatef(45.0f, 0.0f, -1.0f ,0.0f);
-        gl.glRotatef(120.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(0.3f, 0.8f, 1.3f);
-        glu.gluCylinder(gluNewQuadric, 0.02, 0.7, 1.5, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glColor3f(0.2f,0.4f,1.0f);
-        gl.glPushMatrix();
-        gl.glTranslatef(0.0f, 0.2f, 0.0f);
-        gl.glRotatef(45.0f, 0.0f, -1.0f ,0.0f);
-        gl.glRotatef(90.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(1.3f, 1.6f, 1.3f);
-        glu.gluSphere(gluNewQuadric, 0.8f, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glColor3f(0.2f,0.4f,1.0f);
-        gl.glPushMatrix();
-        gl.glTranslatef(-0.5f, -0.8f, 0.75f);
-        gl.glRotatef(65.0f, 0.0f, 1.0f ,0.0f);
-        gl.glRotatef(90.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(0.5f, 1.6f, 1.0f);
-        glu.gluSphere(gluNewQuadric, 0.4f, 25, 25);
-        gl.glPopMatrix();
-
-        gl.glColor3f(0.2f,0.4f,1.0f);
-        gl.glPushMatrix();
-        gl.glTranslatef(0.5f, -0.8f, -0.75f);
-        gl.glRotatef(20.0f, 0.0f, 1.0f ,0.0f);
-        gl.glRotatef(90.0f, 1.0f, 0.0f ,0.0f);
-        gl.glScalef(0.5f, 1.6f, 1.0f);
-        glu.gluSphere(gluNewQuadric, 0.4f, 25, 25);
-        gl.glPopMatrix();
-    }
-    public void drawCube(GL2 gl)
-    {
-        int c = 0;
-        float[][] verts = {
-                { -1, -1, -1 },	// llr
-                { -1, -1, 1 },  // llf
-                { -1, 1, -1 },	// lur
-                { -1, 1, 1 },	// luf
-                { 1, -1, -1 },	// rlr
-                { 1, -1, 1 },	// rlf
-                { 1, 1, -1 },	// rur
-                { 1, 1, 1 }     // ruf
-        };
-
-        int[][] faces = {
-                { 1, 5, 7, 3 }, // front
-                { 4, 0, 2, 6 }, // rear
-                { 3, 7, 6, 2 }, // top
-                { 0, 4, 5, 1 }, // bottom
-                { 0, 1, 3, 2 }, // left
-                { 5, 4, 6, 7 }, // right
-        };
-
-        // outline
-        final float OFF = 0.00f;
-        gl.glColor3f(1, 1, 1);
-        for (int[] face: faces) {
-            gl.glBegin(GL2.GL_LINE_LOOP);
-            for (int i: face) {
-                gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            }
-            gl.glEnd();
-        }
-
-
-    //FRONT
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[0])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //REAR
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[1])
-        {
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-        }
-        gl.glEnd();
-
-
-
-        //TOP
-        //FRONT
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[2])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //BOTTOM
-        gl.glColor3f(0.0f, 1.0f, 0.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[3])
-        {
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-        }
-        gl.glEnd();
-
-        //LEFT
-        c=0;
-        textures[0].bind(gl);
-        textures[0].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[4])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[0].disable(gl);
-
-        gl.glColor3f(0.0f, 1.0f, 0.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[5])
-        {
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-        }
-        gl.glEnd();
-
-    }
-
-    public void drawSpecialCube(GL2 gl)
-    {
-        int c = 0;
-        float[][] verts = {
-                { -1, -1, -1 },	// llr
-                { -1, -1, 1 },  // llf
-                { -1, 1, -1 },	// lur
-                { -1, 1, 1 },	// luf
-                { 1, -1, -1 },	// rlr
-                { 1, -1, 1 },	// rlf
-                { 1, 1, -1 },	// rur
-                { 1, 1, 1 }     // ruf
-        };
-
-        int[][] faces = {
-                { 1, 5, 7, 3 }, // front
-                { 4, 0, 2, 6 }, // rear
-                { 3, 7, 6, 2 }, // top
-                { 0, 4, 5, 1 }, // bottom
-                { 0, 1, 3, 2 }, // left
-                { 5, 4, 6, 7 }, // right
-        };
-
-        // outline
-        final float OFF = 0.00f;
-        gl.glColor3f(0, 0, 0);
-        for (int[] face: faces) {
-            gl.glBegin(GL2.GL_LINE_LOOP);
-            for (int i: face) {
-                gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            }
-            gl.glEnd();
-        }
-
-
-        //FRONT
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[0])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //REAR
-        c=0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[1])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-
-
-        //TOP
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[2])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //Bottom
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[3])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //LEFT
-        c=0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[4])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-
-        //right
-        c=0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[5])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-    }
-
-    public void drawSpecialCube2(GL2 gl)
-    {
-        int c = 0;
-        float[][] verts = {
-                { -1, -1, -1 },	// llr
-                { -1, -1, 1 },  // llf
-                { -1, 1, -1 },	// lur
-                { -1, 1, 1 },	// luf
-                { 1, -1, -1 },	// rlr
-                { 1, -1, 1 },	// rlf
-                { 1, 1, -1 },	// rur
-                { 1, 1, 1 }     // ruf
-        };
-
-        int[][] faces = {
-                { 1, 5, 7, 3 }, // front
-                { 4, 0, 2, 6 }, // rear
-                { 3, 7, 6, 2 }, // top
-                { 0, 4, 5, 1 }, // bottom
-                { 0, 1, 3, 2 }, // left
-                { 5, 4, 6, 7 }, // right
-        };
-
-        // outline
-        final float OFF = 0.00f;
-        gl.glColor3f(0, 0, 0);
-        for (int[] face: faces) {
-            gl.glBegin(GL2.GL_LINE_LOOP);
-            for (int i: face) {
-                gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            }
-            gl.glEnd();
-        }
-
-
-        //FRONT
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[0])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //REAR
-        c=0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[1])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-
-
-        //TOP
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[2])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //Bottom
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[3])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-        //LEFT
-        c=0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[4])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-
-
-        //right
-        c=0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces[5])
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-    }
-
-    public void drawStage(GL2 gl)
-    {
-
-        int stageSize = 7;
-        int levelStep = 7;
-        float z = 0.0f;
-        float stepsZ = 0.0f;
-        float y = 0.0f;
-        float x = 0.0f;
-
-        gl.glPushMatrix();
-        for(int i = 0; i < levelStep; i++)
-        {
-            for (int j = 0; j < stageSize; j++) {
-
-                gl.glPushMatrix();
-                gl.glTranslatef(x, y, z);
-                drawCube(gl);
-                gl.glPopMatrix();
-                z -= 2.0f;
-                y += 2.0;
-            }
-            stepsZ -= 2.0f;
-            z = stepsZ;
-            y = 0.0f;
-            x -= 2.0f;
-            stageSize--;
-        }
-        gl.glPopMatrix();
-
-        gl.glPushMatrix();
-        gl.glTranslatef(-6.0f, 13.0f, -12.0f);
-        gl.glRotatef(specialAngle1, 0.0f, 1.0f, 0.0f);
-        specialAngle1 += 1.0f;
-        if(specialAngle1 == 360.0f)
-        {
-            specialAngle1 = 0;
-        }
-        drawSpecialCube(gl);
-        gl.glPopMatrix();
-
-        gl.glPushMatrix();
-        gl.glTranslatef(0.0f, 13.0f, -6.0f);
-        gl.glRotatef(specialAngle2, -1.0f, 0.0f, 0.0f);
-        specialAngle2 += 1.0f;
-        if(specialAngle2 == 360.0f)
-        {
-            specialAngle2 = 0;
-        }
-        drawSpecialCube2(gl);
-        gl.glPopMatrix();
-
-        if(isometric == 0)
-        {
+	private void drawWorldObjects(GL2 gl) {
+        worldObjects.forEach(shape ->  {
             gl.glPushMatrix();
 
-            if (isMoving) {
-                qBertZ = lerp(t, qBertZ, qbNewZ);
-                qBertY = lerp(t, qBertY, qbNewY);
-                qBertX = lerp(t, qBertX, qbNewX);
-                t += 0.03 * Math.PI;
-                //gl.glTranslatef(qBertX, qBertY +  (float) Math.sin(t* Math.PI), qBertZ);
-                if (t > 1) {
-                    isMoving = false;
-                    t = 0;
-                    qBertZ = qbNewZ;
-                    qBertY = qbNewY;
-                    qBertX = qbNewX;
-                }
-            }
-            else
-            {
-                gl.glTranslatef(qbNewX, qbNewY, qbNewZ);
-                qBertZ = qbNewZ;
-                qBertY = qbNewY;
-                qBertX = qbNewX;
-            }
-
-            if(turnLeft || turnRight) {
-                if (turnLeft) {
-                    qBertAngle = (qBertAngle + 355.0f) % 360;
-                    //System.out.println(qBertAngle + " | " + newAngle);
-                    if (qBertAngle == newAngle) {
-                        turnLeft = false;
-                        isTurning = false;
-                        qBertAngle = newAngle;
-                    }
-                }
-                if (turnRight) {
-                    qBertAngle = (qBertAngle + 5.0f) % 360;
-                    //System.out.println(qBertAngle + " | " + newAngle);
-                    if (qBertAngle == newAngle) {
-                        turnRight = false;
-                        isTurning = false;
-                        qBertAngle = newAngle;
-                    }
-                }
-                gl.glRotatef(qBertAngle, 0.0f, 1.0f, 0.0f);
-            }
-            else
-            {
-                gl.glRotatef(newAngle, 0.0f, 1.0f, 0.0f);
-                qBertAngle = newAngle;
-            }
-
-            gl.glPushMatrix();
-            gl.glTranslatef(0.0f, -0.4f, -0.0f);
-            gl.glScalef(0.60f, 0.60f, 0.60f);
-            drawOddish(gl);
+            gl.glTranslatef(shape.xOffset, shape.yOffset, shape.zOffset);
+            shape.draw(gl);
             gl.glPopMatrix();
-
-            gl.glPopMatrix();
-        }
+        });
+        gl.glPopMatrix();
     }
 
-    public float lerp(float t, float a, float b) {
-        return (1 - t) * a + t * b;
-    }
+	private void updateCamera(GL2 gl) {
+		gl.glViewport(0, 0, INITIAL_WIDTH, INITIAL_HEIGHT);
 
-    public void drawFloorFP(GL2 gl)
-    {
-        int c = 0;
-        float[][] verts = {
-                { -1, -1, -1 },	// llr
-                { -1, -1, 1 },  // llf
-                { -1, 1, -1 },	// lur
-                { -1, 1, 1 },	// luf
-                { 1, -1, -1 },	// rlr
-                { 1, -1, 1 },	// rlf
-                { 1, 1, -1 },	// rur
-                { 1, 1, 1 }     // ruf
-        };
+		gl.glMatrixMode(GL2.GL_PROJECTION);
+		gl.glLoadIdentity();
 
-        int [] faces = { 0, 4, 5, 1 }; // bottom
+		glu.gluPerspective (70, ar, .1f, 50.0);
+	}
 
-        //Bottom
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces)
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
+	private void drawRobot(GL2 gl) {
+        gl.glPushMatrix();
+
+        gl.glTranslatef(XCOORD, robotY, robotZ);
+
+		robot.draw(gl);
+		gl.glPopMatrix();
+	}
+
+	@Override
+	public void dispose(GLAutoDrawable drawable) {
+		// Called when the canvas is destroyed (reverse anything from init) 
+		if (TRACE)
+			System.out.println("-> executing dispose()");
+	}
+
+	@Override
+	public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
+		// Called when the canvas has been resized
+		// Note: glViewport(x, y, width, height) has already been called so don't bother if that's what you want
+		if (TRACE)
+			System.out.println("-> executing reshape(" + x + ", " + y + ", " + width + ", " + height + ")");
+
+		final GL2 gl = drawable.getGL().getGL2();
+		ar = (float)width / (height == 0 ? 1 : height);
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e) {
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) {
+	}
+
+	@Override
+	public void keyTyped(KeyEvent e) {
+		if (e.getKeyChar() == (char) 10) {
+			cameraAngle++;
+			if (cameraAngle == 2) {
+				cameraAngle = 0;
+			}
+			((GLCanvas)e.getSource()).repaint();
+		} else if(e.getKeyChar() == 'w') {
+			VELOCITY += .005f;
+		} else if(e.getKeyChar() == 'a') {
+            XCOORD += +.4f;
+        } else if(e.getKeyChar() == 'd') {
+            XCOORD += -.4f;
+        } else if(e.getKeyChar() == ' ') {
+            JUMP = true;
+            jumping = true;
         }
-        gl.glEnd();
-        textures[1].disable(gl);
+	}
 
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glTranslatef(2.0f, 0.0f, 0.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces)
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glTranslatef(0.0f, 0.0f, 2.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces)
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glTranslatef(2.0f, 0.0f, 2.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces)
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glTranslatef(4.0f, 0.0f, 6.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces)
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
-        c = 0;
-        textures[1].bind(gl);
-        textures[1].enable(gl);
-        gl.glColor3f(1.0f, 1.0f, 1.0f);
-        gl.glTranslatef(0.0f, 0.0f, 4.0f);
-        gl.glBegin(GL2.GL_QUADS);
-        for(int i : faces)
-        {
-            if(c == 0)
-            {
-                gl.glTexCoord2f(0, 0);
-            }
-            else if (c == 1)
-            {
-                gl.glTexCoord2f(1, 0);
-            }
-            else if (c == 2)
-            {
-                gl.glTexCoord2f(1, 1);
-            }
-            else if (c ==3)
-            {
-                gl.glTexCoord2f(0, 1);
-            }
-            gl.glVertex3f(verts[i][0], verts[i][1], verts[i][2]);
-            c++;
-        }
-        gl.glEnd();
-        textures[1].disable(gl);
+	class Face {
+		private int[] indices;
+		private float[] colour;
+        private int texture;
 
-    }
+		public Face(int[] indices, float[] colour, int texture) {
+			this.indices = new int[indices.length];
+			this.colour = new float[colour.length];
+			System.arraycopy(indices, 0, this.indices, 0, indices.length);
+			System.arraycopy(colour, 0, this.colour, 0, colour.length);
+            this.texture = texture;
+		}
 
-    @Override
-    public void reshape(GLAutoDrawable drawable, int x, int y, int width, int height) {
-        // Called when the canvas has been resized
-        // Note: glViewport(x, y, width, height) has already been called so don't bother if that's what you want
-        if (TRACE)
-            System.out.println("-> executing reshape(" + x + ", " + y + ", " + width + ", " + height + ")");
+		public float[] getBoundingBox(ArrayList<float[]> vertices, float[] scale, float xOffset, float yOffset, float zOffset) {
+            float minX = 500;
+            float minY = 500;
+            float maxX = -500;
+            float maxY = -500;
+            float minZ = 500;
+            float maxZ = -500;
 
-        final GL2 gl = drawable.getGL().getGL2();
+            float[] box = new float[6];
+            float[][] transMatrix = translationMatrix(xOffset, yOffset, zOffset);
+            float[][] scaleMatrix = scaleMatrix(scale[0], scale[1], scale[2]);
+            float[][] transformMatrix = multiply(transMatrix, scaleMatrix);
 
-        float ar = (float)width / (height == 0 ? 1 : height);
-
-        gl.glViewport(0, 0, width, height);
-        gl.glMatrixMode(GL2.GL_PROJECTION);
-
-        // TODO: use a perspective projection instead
-        //gl.glOrthof(ar < 1 ? -1.0f : -ar, ar < 1 ? 1.0f : ar, ar > 1 ? -1.0f : -1/ar, ar > 1 ? 1.0f : 1/ar, 0.5f, 2.5f);
-
-        if(isometric == 0)
-        {
-            gl.glLoadIdentity();
-            //glu.gluPerspective(80.0f, ar, 1.0f, 1000.0f);
-            gl.glFrustum(-1.0f, 1.0f, -1.0f, 1.0f, 1.0f, 10.0f);
-        }
-        else
-        {
-            gl.glLoadIdentity();
-            glu.gluPerspective(60.0f, ar, 0.01f, 15000.0f);
-        }
-
-
-
-    }
-
-    @Override
-    public void keyTyped(KeyEvent e) {
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        // TODO Auto-generated method stub
-        direction = null;
-//
-//
-//        if(e.getKeyChar() == 'o')
-//        {
-//            fpTestAngleZ += 0.5f;
-//            System.out.println("Angle: X: " + fpTestAngleX + "Y: " + fpTestAngleY + "Z: " + fpTestAngleZ);
-//        }
-//        if(e.getKeyChar() == 'l')
-//        {
-//            fpTestAngleZ -= 0.5f;
-//            System.out.println("Angle: X: " + fpTestAngleX + "Y: " + fpTestAngleY + "Z: " + fpTestAngleZ);
-//        }
-//        if(e.getKeyChar() == 'i')
-//        {
-//            fpTestAngleY += 0.5f;
-//            System.out.println("Angle: X: " + fpTestAngleX + "Y: " + fpTestAngleY + "Z: " + fpTestAngleZ);
-//        }
-//        if(e.getKeyChar() == 'k')
-//        {
-//            fpTestAngleY -= 0.5f;
-//            System.out.println("Angle: X: " + fpTestAngleX + "Y: " + fpTestAngleY + "Z: " + fpTestAngleZ);
-//        }
-//        if(e.getKeyChar() == 'u')
-//        {
-//            fpTestAngleX += 0.5f;
-//            System.out.println("Angle: X: " + fpTestAngleX + "Y: " + fpTestAngleY + "Z: " + fpTestAngleZ);
-//        }
-//        if(e.getKeyChar() == 'j')
-//        {
-//            fpTestAngleX -= 0.5f;
-//            System.out.println("Angle: X: " + fpTestAngleX + "Y: " + fpTestAngleY + "Z: " + fpTestAngleZ);
-//        }
-//        if(e.getKeyChar() == 'h')
-//        {
-//            fpTestTX -= 0.5f;
-//            System.out.println("World View: X: " + fpTestTX + "Y: " + fpTestTY + "Z: " + fpTestTZ);
-//        }
-//
-//        if(e.getKeyChar() == 'y')
-//        {
-//            fpTestTX += 0.5f;
-//            System.out.println("World View: X: " + fpTestTX + "Y: " + fpTestTY + "Z: " + fpTestTZ);
-//        }
-//        if(e.getKeyChar() == 'g')
-//        {
-//            fpTestTY -= 0.5f;
-//            System.out.println("World View: X: " + fpTestTX + "Y: " + fpTestTY + "Z: " + fpTestTZ);
-//        }
-//        if(e.getKeyChar() == 't')
-//        {
-//            fpTestTY += 0.5f;
-//            System.out.println("World View: X: " + fpTestTX + "Y: " + fpTestTY + "Z: " + fpTestTZ);
-//        }
-//        if(e.getKeyChar() == 'f')
-//        {
-//            fpTestTZ -= 0.5f;
-//            System.out.println("World View: X: " + fpTestTX + "Y: " + fpTestTY + "Z: " + fpTestTZ);
-//        }
-//        if(e.getKeyChar() == 'r')
-//        {
-//            fpTestTZ += 0.5f;
-//            System.out.println("World View: X: " + fpTestTX + "Y: " + fpTestTY + "Z: " + fpTestTZ);
-//        }
-
-        if (e.getKeyCode() == KeyEvent.VK_LEFT || e.getKeyChar() == 'a') {
-            if(!isTurning && !isMoving) {
-                direction = "left";
-                turnLeft = true;
-                if(isometric == 0)
-                {
-                    newAngle = (newAngle + 270) % 360;
-                    faceDirection--;
-                    newFpAngle = (newFpAngle + 270) % 360;
-                    faceDirectionFP++;
+            for(int i : indices) {
+                float[][] vert = transformPoints(transformMatrix, vertices.get(i));
+                if(vert[0][0] <= minX) {
+                    minX = vert[0][0];
                 }
-                else
-                {
-                    newAngle = (newAngle + 90) % 360;
-                    faceDirection++;
-                    newFpAngle = (newFpAngle + 90) % 360;
-                    faceDirectionFP--;
+                if(vert[0][0] >= maxX) {
+                    maxX = vert[0][0];
                 }
-
-                if (faceDirection < 0)
-                {
-                    faceDirection = 3;
+                if(vert[1][0] <= minY) {
+                    minY = vert[1][0];
                 }
-                if (faceDirection > 3)
-                {
-                    faceDirection = 0;
+                if(vert[1][0] >= maxY) {
+                    maxY = vert[1][0];
                 }
-                if (faceDirectionFP < 0)
-                {
-                    faceDirectionFP = 3;
+                if(vert[2][0] <= minZ) {
+                    minZ = vert[2][0];
                 }
-                if (faceDirectionFP > 3)
-                {
-                    faceDirectionFP = 0;
-                }
-                System.out.println(faceDirection +  " | " + faceDirectionFP);
-                isTurning = true;
-            }
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_RIGHT || e.getKeyChar() == 'd') {
-            if(!isTurning && !isMoving) {
-                direction = "right";
-                turnRight = true;
-                if(isometric == 0)
-                {
-                    newAngle = (newAngle + 90) % 360;
-                    faceDirection++;
-                    newFpAngle = (newFpAngle + 90) % 360;
-                    faceDirectionFP--;
-                }
-                else
-                {
-                    newFpAngle = (newFpAngle + 270) % 360;
-                    faceDirectionFP++;
-                    newAngle = (newAngle + 270) % 360;
-                    faceDirection--;
-                }
-
-
-                if (faceDirection < 0)
-                {
-                    faceDirection = 3;
-                }
-                if (faceDirection > 3)
-                {
-                    faceDirection = 0;
-                }
-                if (faceDirectionFP < 0)
-                {
-                    faceDirectionFP = 3;
-                }
-                if (faceDirectionFP > 3)
-                {
-                    faceDirectionFP = 0;
-                }
-                System.out.println(faceDirection +  " | " + faceDirectionFP);
-                isTurning = true;
-            }
-        }
-        else if (e.getKeyCode() == KeyEvent.VK_UP || e.getKeyChar() == 'w') {
-            if(!isTurning && !isMoving)
-            {
-                direction = "up";
-
-                if(faceDirection == 2)
-                {
-                    isMoving = true;
-                    qbNewX += 2.0f;
-                    qbNewY += 2.0f;
-                    fpNX -= 2.0f;
-                    fpNY -= 2.0f;
-
-                    if(qbNewX > 0)
-                    {
-                        qbNewZ = -12.0f;
-                        qbNewY = 14.0f;
-                        qbNewX = 0.0f;
-
-                        fpNX = 0.0f;
-                        fpNY = 0.0f;
-                        fpNZ = 0.0f;
-                    }
-                }
-                else if (faceDirection == 3)
-                {
-                    isMoving = true;
-                    qbNewZ -= 2.0f;
-                    qbNewY += 2.0f;
-                    fpNZ += 2.0f;
-                    fpNY -= 2.0f;
-
-                    if(qbNewZ < -12)
-                    {
-                        qbNewZ = -12.0f;
-                        qbNewY = 14.0f;
-                        qbNewX = 0.0f;
-
-                        fpNX = 0.0f;
-                        fpNY = 0.0f;
-                        fpNZ = 0.0f;
-                    }
+                if(vert[2][0] >= maxZ) {
+                    maxZ = vert[2][0];
                 }
             }
+
+            box[0] = minX;
+            box[1] = maxX;
+            box[2] = minY;
+            box[3] = maxY;
+            box[4] = minZ;
+            box[5] = maxZ;
+
+            return box;
         }
-        else if (e.getKeyCode() == KeyEvent.VK_DOWN || e.getKeyChar() == 's')
-        {
-            if(!isTurning && !isMoving)
-            {
-                direction = "down";
 
-                if(faceDirection == 0)
-                {
-                    isMoving = true;
-                    qbNewX -= 2.0f;
-                    qbNewY -= 2.0f;
-                    fpNY += 2.0f;
-                    fpNX += 2.0f;
+		public void draw(GL2 gl, ArrayList<float[]> vertices, boolean useColour) {
+			if (useColour && texture == -1) {
+				if (colour.length == 3)
+					gl.glColor3f(colour[0], colour[1], colour[2]);
+				else
+					gl.glColor4f(colour[0], colour[1], colour[2], colour[3]);
+			}
 
-                    if(qbNewY < 2)
-                    {
-                        qbNewZ = -12.0f;
-                        qbNewY = 14.0f;
-                        qbNewX = 0.0f;
 
-                        fpNX = 0.0f;
-                        fpNY = 0.0f;
-                        fpNZ = 0.0f;
-                    }
-                }
-                else if (faceDirection == 1 )
-                {
-                    isMoving = true;
-                    qbNewZ += 2.0f;
-                    qbNewY -= 2.0f;
-                    fpNZ -= 2.0f;
-                    fpNY += 2.0f;
-                    if(qbNewY < 2)
-                    {
-                        qbNewZ = -12.0f;
-                        qbNewY = 14.0f;
-                        qbNewX = 0.0f;
+           if(texture != -1 && texture < textures.length) {
+               textures[texture].bind(gl);
+               textures[texture].enable(gl);
 
-                        fpNX = 0.0f;
-                        fpNY = 0.0f;
-                        fpNZ = 0.0f;
-                    }
+               gl.glBegin(GL2.GL_QUADS);
+
+               gl.glTexCoord2f(1, 1);
+               gl.glVertex3f(vertices.get(indices[0])[0], vertices.get(indices[0])[1], vertices.get(indices[0])[2]);
+               gl.glTexCoord2f(0, 1);
+               gl.glVertex3f(vertices.get(indices[1])[0], vertices.get(indices[1])[1], vertices.get(indices[1])[2]);
+               gl.glTexCoord2f(0, 0);
+               gl.glVertex3f(vertices.get(indices[2])[0], vertices.get(indices[2])[1], vertices.get(indices[2])[2]);
+               gl.glTexCoord2f(1, 0);
+               gl.glVertex3f(vertices.get(indices[3])[0], vertices.get(indices[3])[1], vertices.get(indices[3])[2]);
+
+               textures[texture].disable(gl);
+            } else {
+               gl.glBegin(GL2.GL_QUADS);
+                for(int i : indices) {
+                    gl.glVertex3f(vertices.get(i)[0], vertices.get(i)[1], vertices.get(i)[2]);
                 }
             }
+
+
+			gl.glEnd();
+		}
+	}
+
+	// TODO: rewrite the following as you like
+	class Shape {
+		// set this to NULL if you don't want outlines
+		public float[] line_colour;
+
+		protected ArrayList<float[]> vertices;
+		protected ArrayList<Face> faces;
+		
+		private float[] scale;
+		private Rotator rotator;
+
+        public float xOffset;
+        public float zOffset;
+        private float yOffset;
+
+		public Shape(float[] scale, Rotator rotator, int texture) {
+			// you could subclass Shape and override this with your own
+			init(scale, rotator);
+
+			// default shape: cube
+            addVerticesAndFaces(texture);
+
+		}
+
+		public Shape(float[] scale, float[] offset, int texture) {
+            init(scale, null);
+            addVerticesAndFaces(texture);
+            xOffset = offset[0];
+            yOffset = offset[1];
+            zOffset = offset[2];
         }
 
-        if (direction != null) {
-            System.out.println("Direction key pressed: " + direction);
-            ((GLCanvas)e.getSource()).repaint();
+        private ArrayList<float[]> getBoundingBox(boolean isRobot) {
+            ArrayList<float[]> boundingBoxes = new ArrayList<>();
+
+            if(isRobot) {
+                xOffset = XCOORD;
+                zOffset = robotZ;
+                yOffset = robotY;
+            }
+            faces.forEach(face -> boundingBoxes.add(face.getBoundingBox(vertices, scale, xOffset, yOffset, zOffset)));
+
+            return boundingBoxes;
         }
-        if (e.getKeyChar() == ' ')
-        {
-            isometric = (isometric + 1) % 2;
-            // anything else...
+
+        private void addVerticesAndFaces(int texture) {
+            vertices.add(new float[] { -1.0f, -1.0f, 1.0f });
+            vertices.add(new float[] { 1.0f, -1.0f, 1.0f });
+            vertices.add(new float[] { 1.0f, 1.0f, 1.0f });
+            vertices.add(new float[] { -1.0f, 1.0f, 1.0f });
+            vertices.add(new float[] { -1.0f, -1.0f, -1.0f });
+            vertices.add(new float[] { 1.0f, -1.0f, -1.0f });
+            vertices.add(new float[] { 1.0f, 1.0f, -1.0f });
+            vertices.add(new float[] { -1.0f, 1.0f, -1.0f });
+
+            faces.add(new Face(new int[] { 0, 1, 2, 3 }, new float[] { 1.0f, 0.0f, 0.0f } , texture));
+            faces.add(new Face(new int[] { 0, 3, 7, 4 }, new float[] { 1.0f, 1.0f, 0.0f } , texture));
+            faces.add(new Face(new int[] { 7, 6, 5, 4 }, new float[] { 1.0f, 0.0f, 1.0f } , texture));
+            faces.add(new Face(new int[] { 2, 1, 5, 6 }, new float[] { 0.0f, 1.0f, 0.0f } , texture));
+            faces.add(new Face(new int[] { 3, 2, 6, 7 }, new float[] { 0.0f, 0.0f, 1.0f } , texture));
+            faces.add(new Face(new int[] { 1, 0, 4, 5 }, new float[] { 0.0f, 1.0f, 1.0f } , texture));
         }
-        // TODO: add more keys as necessary
-    }
 
-    @Override
-    public void mouseDragged(MouseEvent e) {
-        // TODO: you will need this
-        System.out.println("drag: (" + e.getX() + "," + e.getY() + ") at " + e.getWhen());
+		protected void init(float[] scale, Rotator rotator) {
+			vertices = new ArrayList<float[]>();
+			faces = new ArrayList<Face>();
 
-        float differenceX = e.getX() - prevDragX;
-        float differenceY = e.getY() - prevDragY;
+			line_colour = new float[] { 1,1,1 };
+			if (null == scale) {
+				this.scale = new float[] { 1,1,1 };
+			} else {
+				this.scale = new float[] { scale[0], scale[1], scale[2] };
+			}
+			
+			this.rotator = rotator;
+		}
 
-        if(viewY < -90)
-        {
-            viewY = -90;
-        }
-        if(viewY > 90)
-        {
-            viewY = 90;
-        }
-        viewY += differenceY / 5;
-        viewX += differenceX /5;
+		public void rotate(GL2 gl) {
+			if (rotator != null) {
+				gl.glTranslatef(rotator.origin[0], rotator.origin[1], rotator.origin[2]);
+				gl.glRotatef(rotator.angle, rotator.axis[0], rotator.axis[1], rotator.axis[2]);
+				gl.glTranslatef(-rotator.origin[0], -rotator.origin[1], -rotator.origin[2]);
+			}
+		}
+		
+		public void draw(GL2 gl) {
+			gl.glPushMatrix();
+			gl.glScalef(scale[0], scale[1], scale[2]);
+			for (Face f: faces) {
+				if (line_colour == null) {
+					f.draw(gl, vertices, true);
+				} else {
+					gl.glEnable(GL2.GL_POLYGON_OFFSET_FILL);
+					gl.glPolygonOffset(1.0f, 1.0f);
+					f.draw(gl, vertices, true);
+					gl.glDisable(GL2.GL_POLYGON_OFFSET_FILL);
 
-        prevDragX = e.getX();
-        prevDragY = e.getY();
+					gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+					gl.glLineWidth(2.0f);
+					gl.glColor3f(line_colour[0], line_colour[1], line_colour[2]);
+					f.draw(gl, vertices, false);
+					gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+				}
+			}
+			gl.glPopMatrix();
+		}
+	}
 
+	// TODO: rewrite the following as you like
+	class Structure extends Shape {
+		// this array can include other structures...
+		private Shape[] contents;
+		private float[][] positions;
 
-    }
+		public Structure(Shape[] contents, float[][] positions, float[] scale, Rotator rotator, int texture) {
+			super(scale, rotator, texture);
+			init(contents, positions);
+		}
 
-    @Override
-    public void mouseMoved(MouseEvent e) {
-    }
+		private void init(Shape[] contents, float[][] positions) {
+			this.contents = new Shape[contents.length];
+			this.positions = new float[positions.length][3];
+			System.arraycopy(contents, 0, this.contents, 0, contents.length);
+			for (int i = 0; i < positions.length; i++) {
+				System.arraycopy(positions[i], 0, this.positions[i], 0, 3);
+			}
+		}
 
-    @Override
-    public void mouseClicked(MouseEvent arg0) {
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent arg0) {
-    }
-
-    @Override
-    public void mouseExited(MouseEvent arg0) {
-    }
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-        // TODO: you may need this
-        System.out.println("press: (" + e.getX() + "," + e.getY() + ") at " + e.getWhen());
-        prevDragX = e.getX();
-        prevDragY = e.getY();
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent arg0) {
-    }
+		public void draw(GL2 gl) {
+			super.draw(gl);
+			for (int i = 0; i < contents.length; i++) {
+				gl.glPushMatrix();
+				gl.glTranslatef(positions[i][0], positions[i][1], positions[i][2]);
+				contents[i].rotate(gl);
+				contents[i].draw(gl);
+				gl.glPopMatrix();
+			}
+		}
+	}
+	
+	class Rotator {
+		public float[] origin;
+		public float[] axis;
+		public float angle, startAngle, endAngle, vAngle;
+		boolean up;
+		
+		public Rotator(float[] origin, float[] axis, float angle, float startAngle, float endAngle, float vAngle) {
+			this.origin = new float[] {origin[0], origin[1], origin[2]};
+			this.axis = new float[] {axis[0], axis[1], axis[2]};
+			this.angle = angle;
+			this.startAngle = startAngle;
+			this.endAngle = endAngle;
+			this.vAngle = vAngle;
+			this.up = true;
+		}
+		
+		public void update(float elapsed) {
+			if (up) {
+				angle += elapsed * vAngle;
+				if (angle > endAngle) {
+					angle = endAngle - Math.abs(angle - endAngle);
+					up = false;
+				}
+			} else {
+				angle -= elapsed * vAngle;
+				if (angle < startAngle) {
+					angle = startAngle + Math.abs(angle - startAngle);
+					up = true;
+				}
+			}
+		}
+	}
 }
