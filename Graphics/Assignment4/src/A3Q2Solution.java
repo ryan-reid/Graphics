@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -22,7 +23,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	public static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
 	public static final int INITIAL_WIDTH = 640;
 	public static final int INITIAL_HEIGHT = 640;
-	public static float VELOCITY = .015f;
+	public static float VELOCITY = .05f;
 	public static float ROTATION = 0f;
     private static float XCOORD = 0f;
     private static boolean JUMP = false;
@@ -80,13 +81,8 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	/*** Instance variables and methods ***/
 
 	private float ar;
-	private int projection = 0;
 	private int cameraAngle = 0;
-	private boolean viewChanged = true;
-
-	private String direction;
 	private Texture[] textures;
-
 	private Structure robot;
 	private Rotator[] rotators;
 	private float robotZ;
@@ -152,39 +148,53 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 							},
 							new float[] {0.15f,0.25f,0.15f}, null);
 
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 20} , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, 18} , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {5, 1}   , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 22}  , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {3, -14} , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {21, -20}, 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, -8}  , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {7, 3}   , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {0, 12}  , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-18, 18}, 3));
 
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-2, 9}  , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-8, 0}  , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -5}, 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-12, -8}, 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-17, -2}, 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 4f, (float) Math.random() * 2}, new float[] {-19, 16}, 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {4, -4}  , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {16, -9} , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {12, -11}, 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {9, -19} , 3));
-        worldObjects.add(new Shape(new float[] {(float) Math.random() * 2, 2f, (float) Math.random() * 2}, new float[] {-15, -3}, 3));
-
+        createTwoObjectsEveryFiveBlocks();
 
         //Walls
-        worldObjects.add(new Shape(new float[] {22, 50f, -.1f}, new float[] {0, 22},  1));
-        worldObjects.add(new Shape(new float[] {22, 50f, -.1f}, new float[] {0, -22}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 22f}, new float[] {22, 0}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 22f}, new float[] {-22, 0},1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {4, -.75f, 0}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {-4, -.75f, 0},1));
+
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {4, -.75f, 100}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {-4, -.75f, 100},1));
+//
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {4, -.75f, 200}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {-4, -.75f, 200},1));
+//
+        worldObjects.add(new Shape(new float[] {4, 50f, -.1f}, new float[] {0, -.75f, 400},  1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {4, -.75f, 300}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 100}, new float[] {-4, -.75f, 300},1));
 
         //Floor
-        worldObjects.add(new Shape(new float[] {22f, -.1f, 22f}, new float[] {0, 0}, 2));
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 0}, 2));
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 100}, 2));
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 200}, 2));
+       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 300}, 2));
 	}
+
+	private void createTwoObjectsEveryFiveBlocks() {
+        for(int i = 2; i <= 80; i++) {
+            int count = 0;
+            float maxX = 3.5f;
+            float minX = -3.5f;
+
+            int maxZ = i * 5;
+            int minZ = (i - 1) * 5;
+
+
+            while(count < 1) {
+                Random random = new Random();
+                float xCoord =  (random.nextFloat() * ((maxX - minX) + minX)) * (random.nextBoolean() ? -1 : 1);
+                random = new Random();
+                float zCoord = random.nextFloat() * ( maxZ - minZ) + minZ;
+
+                if(zCoord - 1 > 0) {
+                    worldObjects.add(new Shape(new float[] {1, 2f, 1}, new float[] {xCoord, -.75f, zCoord}, 3));
+                    count++;
+                }
+            }
+        }
+    }
 
 	@Override
 	public void init(GLAutoDrawable drawable) {
@@ -206,18 +216,18 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			e.printStackTrace();
 		}
 
-		// TODO: Add code here
-		gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-		gl.glEnable(GL2.GL_DEPTH_TEST);
-		gl.glDepthFunc(GL2.GL_LEQUAL);
-		gl.glEnable(GL2.GL_BLEND);
-		gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
-		//gl.glEnable(GL2.GL_CULL_FACE);
+        gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        gl.glEnable(GL2.GL_DEPTH_TEST);
+        gl.glDepthFunc(GL2.GL_LEQUAL);
+        gl.glEnable(GL2.GL_BLEND);
+        gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
+        gl.glEnable(GL2.GL_CULL_FACE);
 
-       //gl.glEnable(GL2.GL_FOG);
-       //gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
-       //gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
-       //gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
+       gl.glEnable(GL2.GL_FOG);
+       gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
+       gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
+       gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
+
 	}
 
 	@Override
@@ -239,9 +249,9 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
         if(JUMP) {
             if(jumping) {
-                robotY += .03f;
+                robotY += .05f;
             } else {
-                robotY -= .03f;
+                robotY -= .05f;
             }
 
             if(robotY >= 5) {
@@ -254,26 +264,27 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
         if(robotCollided()) {
             robotZ = 0;
-            VELOCITY = 0.015f;
-            ROTATION = 0;
+            XCOORD = 0;
+            VELOCITY = 0.05f;
         }
 
-
-
 		if (1 == cameraAngle) {
-			gl.glTranslatef(0.0f, -0.9f, -1.3f);
+			gl.glTranslatef(0.0f, -0.9f, -2.3f);
 			gl.glRotatef(-180, 0f, 1f, 0f);
+            gl.glRotatef(-15, 1f, 0f, 0f);
 		} else {
 			gl.glTranslatef(0.0f, -0.9f, 0);
 			gl.glRotatef(-180, 0f, 1f, 0f);
 		}
 
-		gl.glTranslatef(-XCOORD, -robotY, -robotZ);
+
+        gl.glTranslatef(-XCOORD, -robotY, -robotZ);
 
 		gl.glPushMatrix();
 
+        drawRobot(gl);
+
         drawWorldObjects(gl);
-		drawRobot(gl);
 
 		for (Rotator r: rotators) {
 			r.update(1f);
@@ -281,7 +292,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 	}
 
    private float[][] converToMultiDemArray(float[] vertices) {
-       return new float[][] { {vertices[0]}, {vertices[1]}, {vertices[2]}};
+       return new float[][] { {vertices[0]}, {vertices[1]}, {vertices[2]}, {1}};
    }
 
     private float[][] transformPoints(float[][] transformation, float[] vertices) {
@@ -291,10 +302,10 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
     }
 
     private float[][] transformPoints(float[][] transformation, float[][] point) {
-        float[][] result = new float[3][1];
+        float[][] result = new float[4][1];
 
         for (int k = 0; k < point[0].length; k++) {
-            for (int e = 0; e < 3; e++) {
+            for (int e = 0; e < 4; e++) {
                 float sum = 0;
                 for (int f = 0; f < point.length; f++) {
                     sum += transformation[e][f] * point[f][k];
@@ -333,17 +344,18 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
         ArrayList<float[]> boundingBoxes = new ArrayList<>();
 
         for (Shape content : robot.contents) {
-            boundingBoxes.addAll(content.getBoundingBox());
+            boundingBoxes.addAll(content.getBoundingBox(true));
         }
 
         for(Shape object : worldObjects) {
-            for(float[] box : object.getBoundingBox()) {
+            for(float[] box : object.getBoundingBox(false)) {
                 for(float[] roboBox : boundingBoxes) {
-                    if(roboBox[2] < box[3]
-                    || roboBox[3] > box[2]
-                    || roboBox[1] > box[0]
-                    || roboBox[0] < box[1]) {
-                        return true;
+                    if(roboBox[0] <= box[1] && roboBox[1] >= box[0]) {
+                        if(roboBox[2] <= box[3] && roboBox[3] >= box[2]) {
+                            if(roboBox[4] <= box[5] && roboBox[5] >= box[4]) {
+                                return true;
+                            }
+                        }
                     }
                 }
             }
@@ -356,13 +368,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
         worldObjects.forEach(shape ->  {
             gl.glPushMatrix();
 
-            float[] center = shape.getShapeCenter();
-
-            gl.glTranslatef(-(center[0]), -center[1], -(center[2]));
-            gl.glRotatef(ROTATION, 0f, 1f, 0f);
-            gl.glTranslatef((center[0]), center[1], (center[2]));
-
-            gl.glTranslatef(shape.xOffset, -.75f, shape.zOffset);
+            gl.glTranslatef(shape.xOffset, shape.yOffset, shape.zOffset);
             shape.draw(gl);
             gl.glPopMatrix();
         });
@@ -375,7 +381,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 		gl.glMatrixMode(GL2.GL_PROJECTION);
 		gl.glLoadIdentity();
 
-		glu.gluPerspective (110, ar, .5f, 50.0);
+		glu.gluPerspective (75, ar, .5f, 50.0);
 	}
 
 	private void drawRobot(GL2 gl) {
@@ -423,16 +429,10 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 			((GLCanvas)e.getSource()).repaint();
 		} else if(e.getKeyChar() == 'w') {
 			VELOCITY += .005f;
-		} else if(e.getKeyChar() == 's') {
-			VELOCITY += -.005f;
-		} else if(e.getKeyChar() == 'q') {
-			ROTATION += -1;
-		} else if(e.getKeyChar() == 'e') {
-			ROTATION += 1;
 		} else if(e.getKeyChar() == 'a') {
-            XCOORD += +.1f;
+            XCOORD += +.4f;
         } else if(e.getKeyChar() == 'd') {
-            XCOORD += -.1f;
+            XCOORD += -.4f;
         } else if(e.getKeyChar() == ' ') {
             JUMP = true;
             jumping = true;
@@ -452,25 +452,38 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             this.texture = texture;
 		}
 
-		public float[] getBoundingBox(ArrayList<float[]> vertices, float[] scale) {
-            float minX = 99;
-            float minY = 99;
-            float maxX = -99;
-            float maxY = -99;
-            float[] box = new float[4];
+		public float[] getBoundingBox(ArrayList<float[]> vertices, float[] scale, float xOffset, float yOffset, float zOffset) {
+            float minX = 500;
+            float minY = 500;
+            float maxX = -500;
+            float maxY = -500;
+            float minZ = 500;
+            float maxZ = -500;
+
+            float[] box = new float[6];
+            float[][] transMatrix = translationMatrix(xOffset, yOffset, zOffset);
+            float[][] scaleMatrix = scaleMatrix(scale[0], scale[1], scale[2]);
+            float[][] transformMatrix = multiply(transMatrix, scaleMatrix);
 
             for(int i : indices) {
-                if(vertices.get(i)[0] <= minX) {
-                    minX = vertices.get(i)[0];
+                float[][] vert = transformPoints(transformMatrix, vertices.get(i));
+                if(vert[0][0] <= minX) {
+                    minX = vert[0][0];
                 }
-                if(vertices.get(i)[0] >= maxX) {
-                    maxX = vertices.get(i)[0];
+                if(vert[0][0] >= maxX) {
+                    maxX = vert[0][0];
                 }
-                if(vertices.get(i)[1] <= minY) {
-                    minY = vertices.get(i)[1];
+                if(vert[1][0] <= minY) {
+                    minY = vert[1][0];
                 }
-                if(vertices.get(i)[1] >= maxY) {
-                    maxY = vertices.get(i)[1];
+                if(vert[1][0] >= maxY) {
+                    maxY = vert[1][0];
+                }
+                if(vert[2][0] <= minZ) {
+                    minZ = vert[2][0];
+                }
+                if(vert[2][0] >= maxZ) {
+                    maxZ = vert[2][0];
                 }
             }
 
@@ -478,6 +491,8 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             box[1] = maxX;
             box[2] = minY;
             box[3] = maxY;
+            box[4] = minZ;
+            box[5] = maxZ;
 
             return box;
         }
@@ -489,6 +504,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 				else
 					gl.glColor4f(colour[0], colour[1], colour[2], colour[3]);
 			}
+
 
            if(texture != -1) {
                textures[texture].bind(gl);
@@ -531,6 +547,7 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 
         public float xOffset;
         public float zOffset;
+        private float yOffset;
 
 		public Shape(float[] scale, Rotator rotator) {
 			// you could subclass Shape and override this with your own
@@ -545,50 +562,21 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
             init(scale, null);
             addVerticesAndFaces(texture);
             xOffset = offset[0];
-            zOffset = offset[1];
+            yOffset = offset[1];
+            zOffset = offset[2];
         }
 
-        private ArrayList<float[]> getBoundingBox() {
+        private ArrayList<float[]> getBoundingBox(boolean isRobot) {
             ArrayList<float[]> boundingBoxes = new ArrayList<>();
 
-            faces.forEach(face -> boundingBoxes.add(face.getBoundingBox(vertices, scale)));
+            if(isRobot) {
+                xOffset = XCOORD;
+                zOffset = robotZ;
+                yOffset = robotY;
+            }
+            faces.forEach(face -> boundingBoxes.add(face.getBoundingBox(vertices, scale, xOffset, yOffset, zOffset)));
 
             return boundingBoxes;
-        }
-
-        public float[] getShapeCenter() {
-            float[] center = new float[3];
-
-            for (float[] vertice : vertices) {
-                center = updateCenter(vertice, center);
-            }
-
-            float total = vertices.size();
-
-            center[0] /= total;
-            center[1] /= total;
-            center[2] /= total;
-
-            System.out.println(center[0] + " " + center[1] + " " + center[2]);
-
-            return center;
-        }
-
-        private float[] updateCenter(float[] vertex, float[] center) {
-            float[][] transform = translationMatrix(xOffset, 0, zOffset);
-            float[][] rotate = rotateMatrix(ROTATION);
-            float[][] scaleMatrix = scaleMatrix(scale[0], scale[1], scale[2]);
-
-            float[][] trans = multiply(transform, rotate);
-            trans = multiply(trans, scaleMatrix);
-
-            float[][] points = transformPoints(trans, vertex);
-
-            center[0] += points[0][0];
-            center[1] += points[1][0];
-            center[2] += points[2][0];
-
-            return  center;
         }
 
         private void addVerticesAndFaces(int texture) {
@@ -673,37 +661,6 @@ public class A3Q2Solution implements GLEventListener, KeyListener {
 				System.arraycopy(positions[i], 0, this.positions[i], 0, 3);
 			}
 		}
-
-		public float[] getCenter() {
-            float[] center = new float[3];
-            int total = 0;
-
-            for (Shape content : contents) {
-                content.vertices.forEach( vertice -> updateCenter(vertice, center, content.scale));
-                total += content.vertices.size();
-            }
-
-            center[0] /= total;
-            center[1] /= total;
-            center[2] /= total;
-
-            return center;
-        }
-
-        private void updateCenter(float[] vertice, float[] center, float[] scale) {
-            float[][] transform = translationMatrix(XCOORD, 0, robotZ);
-            float[][] rotate = rotateMatrix(ROTATION);
-            float[][] scaleMatrix = scaleMatrix(scale[0], scale[1], scale[2]);
-
-            float[][] trans = multiply(transform, rotate);
-            trans = multiply(trans, scaleMatrix);
-
-            float[][] points = transformPoints(trans, vertice);
-
-            center[0] += points[0][0];
-            center[1] += points[1][0];
-            center[2] += points[2][0];
-        }
 
 		public void draw(GL2 gl) {
 			super.draw(gl);
