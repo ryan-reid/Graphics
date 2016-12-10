@@ -23,6 +23,8 @@ Texture links
 floor.jpg - http://www.textures.com/download/woodfine0001/14121
 wood.jpg - http://www.textures.com/download/woodbamboo0085/124322
 metal.jpg - http://www.textures.com/download/metalbare0064/5350
+Rock.jpg - http://www.textures.com/download/rockjagged0010/25537
+Projectile.jpg - http://www.textures.com/download/grungemaps0135/45588
 */
 
 public class A4 implements GLEventListener, KeyListener {
@@ -34,6 +36,7 @@ public class A4 implements GLEventListener, KeyListener {
 	private static float VELOCITY = .0f;
     private static float XCOORD = 0f;
     private static boolean JUMP = false;
+    private static int lastGenerationInBlocks = 0;
 
     private static float robotY = 0f;
     private static boolean jumping = false;
@@ -41,7 +44,7 @@ public class A4 implements GLEventListener, KeyListener {
 	// Name of the input file path
 	private static final String TEXTURE_PATH = "resources/";
 
-    private static final String[] TEXTURE_FILES = { "ObjectText.jpg", "08.jpg", "floor.jpg", "wood.jpg", "metal.jpg"};
+    private static final String[] TEXTURE_FILES = { "Rock.jpg", "08.jpg", "floor.jpg", "wood.jpg", "metal.jpg", "Projectile.jpg"};
 
 	private static final GLU glu = new GLU();
 
@@ -93,7 +96,9 @@ public class A4 implements GLEventListener, KeyListener {
 	private Structure robot;
 	private Rotator[] rotators;
 	private float robotZ;
+
     private ArrayList<Shape> worldObjects = new ArrayList<>();
+    private ArrayList<AnimatedObject> animatedObjects = new ArrayList<>();
 
 	public void setup(final GLCanvas canvas) {
 		// Called for one-time setup
@@ -155,36 +160,34 @@ public class A4 implements GLEventListener, KeyListener {
 							new float[] {0.15f,0.25f,0.15f}, null, 4);
 
 
-        //createTwoObjectsEveryFiveBlocks();
-
-        //Walls
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 0}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 0},1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 50}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 50},1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 100}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 100},1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 150}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 150},1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 200}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 200},1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 250}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 250},1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 300}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 300},1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 350}, 1));
-       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 350},1));
-       //worldObjects.add(new Shape(new float[] {4, 50f, -.1f}, new float[] {0, -.75f, 400},  1));
-
-        //Floor
-       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 0}, 2));
-       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 100}, 2));
-       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 200}, 2));
-       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 300}, 2));
+        genereateStartingItems(2);
 	}
 
-	private void createTwoObjectsEveryFiveBlocks() {
-        for(int i = 2; i <= 80; i++) {
+	private void genereateStartingItems(int startLocation) {
+        deleteOldItems();
+        createTwoObjectsEveryFiveBlocks(startLocation, startLocation + 6);
+        genereateFloatingObjects(startLocation, startLocation + 6);
+        if(startLocation <= 2) {
+            createWallsAndFloor(12 , 2);
+        } else {
+            createWallsAndFloor(startLocation + 6, 1);
+        }
+
+    }
+
+    private void createWallsAndFloor(int startLocation, int lengthMod) {
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 30 * lengthMod}, new float[] {4, -.75f, startLocation * 5}, 1));
+        worldObjects.add(new Shape(new float[] {-.1f, 50f, 30 * lengthMod}, new float[] {-4, -.75f, startLocation * 5}, 1));
+        worldObjects.add(new Shape(new float[] {4, -.1f, 30 * lengthMod}, new float[] {0, -.75f, startLocation * 5}, 2));
+    }
+
+    private void deleteOldItems() {
+        animatedObjects.removeIf(animatedObject -> animatedObject._zMod < robotZ);
+        worldObjects.removeIf(shape -> shape.zOffset < robotZ);
+    }
+
+	private void createTwoObjectsEveryFiveBlocks(int startingPoint, int endPoint) {
+        for(int i = startingPoint; i <= endPoint; i++) {
             int count = 0;
             float maxX = 3.5f;
             float minX = -3.5f;
@@ -200,7 +203,32 @@ public class A4 implements GLEventListener, KeyListener {
                 float zCoord = random.nextFloat() * ( maxZ - minZ) + minZ;
 
                 if(zCoord - 1 > 0) {
-                    worldObjects.add(new Shape(new float[] {1, 1f, 1}, new float[] {xCoord, -.75f, zCoord}, 3));
+                    worldObjects.add(new Shape(new float[] {1, 1.5f, .5f}, new float[] {xCoord, -.75f, zCoord}, 3));
+                    count++;
+                }
+            }
+        }
+    }
+
+    private void genereateFloatingObjects(int startingPoint, int endPoint) {
+        for(int i = startingPoint; i <= endPoint; i++) {
+            int count = 0;
+            float maxX = 3.5f;
+            float minX = -3.5f;
+
+            int maxZ = i * 5;
+            int minZ = (i - 1) * 5;
+
+            while(count < 2) {
+                Random random = new Random();
+                float xCoord =  (random.nextFloat() * ((maxX - minX) + minX)) * (random.nextBoolean() ? -1 : 1);
+                random = new Random();
+                float zCoord = random.nextFloat() * ( maxZ - minZ) + minZ;
+                random = new Random();
+                float yCoord = random.nextFloat() * (3);
+
+                if(zCoord - 1 > 0) {
+                    animatedObjects.add(new AnimatedObject(xCoord, zCoord, yCoord, 0));
                     count++;
                 }
             }
@@ -232,16 +260,15 @@ public class A4 implements GLEventListener, KeyListener {
         gl.glDepthFunc(GL2.GL_LEQUAL);
         gl.glEnable(GL2.GL_BLEND);
         gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
-        //gl.glEnable(GL2.GL_CULL_FACE);
+        gl.glEnable(GL2.GL_CULL_FACE);
 
-       //gl.glEnable(GL2.GL_FOG);
-       //gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
-       //gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
-       //gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
+        gl.glEnable(GL2.GL_FOG);
+        gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
+        gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
+        gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
 
 	}
 
-	AnimatedObject animated = new AnimatedObject(0f, 5f, 1);
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		// Draws the display
@@ -256,6 +283,12 @@ public class A4 implements GLEventListener, KeyListener {
 
 		robotZ += VELOCITY;
 
+        if(robotZ - lastGenerationInBlocks > 20) {
+            genereateStartingItems((int) (robotZ + (robotZ - lastGenerationInBlocks)) / 5);
+            System.out.println(robotZ + (robotZ - lastGenerationInBlocks) / 5);
+            lastGenerationInBlocks = (int) robotZ;
+        }
+
 		gl.glMatrixMode(GL2.GL_MODELVIEW);
 		gl.glLoadIdentity();
 
@@ -265,35 +298,22 @@ public class A4 implements GLEventListener, KeyListener {
 
         if(robotCollided()) {
             resetRobot();
+            worldObjects.clear();
+            animatedObjects.clear();
+            lastGenerationInBlocks = 0;
+            genereateStartingItems(2);
         }
 
         setCameraAngle(gl);
-
-        animated.draw(gl, 1);
 
         drawRobot(gl);
 
         drawWorldObjects(gl);
 
-        drawBoundingBoxes(gl);
-
 		for (Rotator r: rotators) {
 			r.update(1f);
 		}
 	}
-
-	private void drawBoundingBoxes(GL2 gl) {
-
-        float[] box = animated.getBoundingBox();
-
-        gl.glBegin(GL2.GL_LINE_STRIP);
-        gl.glVertex3f(box[0], box[2], box[4]);
-        gl.glVertex3f(box[0], box[3], box[4]);
-        gl.glVertex3f(box[1], box[3], box[4]);
-        gl.glVertex3f(box[1], box[2], box[4]);
-        gl.glEnd();
-
-    }
 
 	private void makeRobotJump() {
         if(jumping) {
@@ -302,7 +322,7 @@ public class A4 implements GLEventListener, KeyListener {
             robotY -= .05f;
         }
 
-        if(robotY >= 5) {
+        if(robotY >= 3) {
             jumping = false;
         } else if(robotY <= 0) {
             robotY = 0;
@@ -372,10 +392,6 @@ public class A4 implements GLEventListener, KeyListener {
         return result;
     }
 
-    private float[][] rotateMatrix(float theta) {
-        return new float[][]{{(float) Math.cos(theta), 0, -(float) Math.sin(theta), 0f}, {0, 1, 0, 0}, {((float) Math.sin(theta)), 0, (float) Math.cos(theta), 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
-    }
-
     private float[][] scaleMatrix(float scaleX, float scaleY, float scaleZ) {
         return new float[][] { {scaleX, 0, 0, 0}, {0, scaleY, 0, 0}, {0, 0, scaleZ, 0}, {0, 0, 0, 1}};
     }
@@ -400,8 +416,10 @@ public class A4 implements GLEventListener, KeyListener {
                 }
             }
 
-            if (collision(roboBox, animated.getBoundingBox())) {
-                return true;
+            for(AnimatedObject animated : animatedObjects) {
+                if (collision(roboBox, animated.getBoundingBox())) {
+                    return true;
+                }
             }
         }
 
@@ -432,6 +450,9 @@ public class A4 implements GLEventListener, KeyListener {
             gl.glPopMatrix();
         });
         gl.glPopMatrix();
+
+
+        animatedObjects.forEach(animatedObject -> animatedObject.draw(gl));
     }
 
 	private void updateCamera(GL2 gl) {
@@ -494,8 +515,6 @@ public class A4 implements GLEventListener, KeyListener {
         } else if(e.getKeyChar() == ' ') {
             JUMP = true;
             jumping = true;
-        } else if(e.getKeyChar() == 's') {
-            VELOCITY += -.005f;
         }
 	}
 
@@ -595,7 +614,6 @@ public class A4 implements GLEventListener, KeyListener {
 	}
 
 	class Shape {
-		// set this to NULL if you don't want outlines
         private float[] line_colour;
 
         private ArrayList<float[]> vertices;
@@ -609,12 +627,9 @@ public class A4 implements GLEventListener, KeyListener {
         private float yOffset;
 
         private Shape(float[] scale, Rotator rotator, int texture) {
-			// you could subclass Shape and override this with your own
 			init(scale, rotator);
 
-			// default shape: cube
             addVerticesAndFaces(texture);
-
 		}
 
         private Shape(float[] scale, float[] offset, int texture) {
@@ -767,22 +782,35 @@ public class A4 implements GLEventListener, KeyListener {
 
 	private class AnimatedObject {
         private float _xMod;
-        private float _yMod = 0f;
+        private float _yMod = 3f;
         private float _zMod;
-        private float _radius = .1f;
-        private float _length = 1f;
+        private float _radius = .5f;
         private float _rotate = 90f;
         private int _textureCoord;
+        private boolean falling = true;
 
-        private AnimatedObject(float xMod, float zMod, int tex) {
+        private AnimatedObject(float xMod, float zMod, float yMod, int tex) {
             _xMod = xMod;
             _zMod = zMod;
+            _yMod = yMod;
             _textureCoord = tex;
         }
 
-        private void draw(GL2 gl, float time) {
+        private void draw(GL2 gl) {
             gl.glPushMatrix();
             GLUquadric quadric = glu.gluNewQuadric();
+
+            if(falling) {
+                _yMod -= .01;
+                if(_yMod <= 0) {
+                    falling = false;
+                }
+            } else {
+                _yMod += .01;
+                if(_yMod >= 3) {
+                    falling = true;
+                }
+            }
 
             _rotate += 5;
             gl.glTranslatef(_xMod, _yMod, _zMod);
