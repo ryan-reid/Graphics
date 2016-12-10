@@ -31,7 +31,7 @@ public class A4 implements GLEventListener, KeyListener {
 	private static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
 	private static final int INITIAL_WIDTH = 640;
 	private static final int INITIAL_HEIGHT = 640;
-	private static float VELOCITY = .05f;
+	private static float VELOCITY = .0f;
     private static float XCOORD = 0f;
     private static boolean JUMP = false;
 
@@ -155,40 +155,32 @@ public class A4 implements GLEventListener, KeyListener {
 							new float[] {0.15f,0.25f,0.15f}, null, 4);
 
 
-        createTwoObjectsEveryFiveBlocks();
+        //createTwoObjectsEveryFiveBlocks();
 
         //Walls
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 0}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 0},1));
-
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 50}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 50},1));
-
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 100}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 100},1));
-
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 150}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 150},1));
-
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 200}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 200},1));
-
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 250}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 250},1));
-
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 300}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 300},1));
-
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 350}, 1));
-        worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 350},1));
-
-        worldObjects.add(new Shape(new float[] {4, 50f, -.1f}, new float[] {0, -.75f, 400},  1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 0}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 0},1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 50}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 50},1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 100}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 100},1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 150}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 150},1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 200}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 200},1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 250}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 250},1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 300}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 300},1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {4, -.75f, 350}, 1));
+       //worldObjects.add(new Shape(new float[] {-.1f, 50f, 50}, new float[] {-4, -.75f, 350},1));
+       //worldObjects.add(new Shape(new float[] {4, 50f, -.1f}, new float[] {0, -.75f, 400},  1));
 
         //Floor
-       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 0}, 2));
-       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 100}, 2));
-       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 200}, 2));
-       worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 300}, 2));
+       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 0}, 2));
+       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 100}, 2));
+       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 200}, 2));
+       //worldObjects.add(new Shape(new float[] {4, -.1f, 100}, new float[] {0, -.75f, 300}, 2));
 	}
 
 	private void createTwoObjectsEveryFiveBlocks() {
@@ -208,7 +200,7 @@ public class A4 implements GLEventListener, KeyListener {
                 float zCoord = random.nextFloat() * ( maxZ - minZ) + minZ;
 
                 if(zCoord - 1 > 0) {
-                    worldObjects.add(new Shape(new float[] {1, 2f, 1}, new float[] {xCoord, -.75f, zCoord}, 3));
+                    worldObjects.add(new Shape(new float[] {1, 1f, 1}, new float[] {xCoord, -.75f, zCoord}, 3));
                     count++;
                 }
             }
@@ -240,15 +232,16 @@ public class A4 implements GLEventListener, KeyListener {
         gl.glDepthFunc(GL2.GL_LEQUAL);
         gl.glEnable(GL2.GL_BLEND);
         gl.glBlendFunc(GL2.GL_SRC_ALPHA, GL2.GL_ONE_MINUS_SRC_ALPHA);
-        gl.glEnable(GL2.GL_CULL_FACE);
+        //gl.glEnable(GL2.GL_CULL_FACE);
 
-       gl.glEnable(GL2.GL_FOG);
-       gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
-       gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
-       gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
+       //gl.glEnable(GL2.GL_FOG);
+       //gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
+       //gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
+       //gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
 
 	}
 
+	AnimatedObject animated = new AnimatedObject(0f, 5f, 1);
 	@Override
 	public void display(GLAutoDrawable drawable) {
 		// Draws the display
@@ -276,14 +269,31 @@ public class A4 implements GLEventListener, KeyListener {
 
         setCameraAngle(gl);
 
+        animated.draw(gl, 1);
+
         drawRobot(gl);
 
         drawWorldObjects(gl);
+
+        drawBoundingBoxes(gl);
 
 		for (Rotator r: rotators) {
 			r.update(1f);
 		}
 	}
+
+	private void drawBoundingBoxes(GL2 gl) {
+
+        float[] box = animated.getBoundingBox();
+
+        gl.glBegin(GL2.GL_LINE_STRIP);
+        gl.glVertex3f(box[0], box[2], box[4]);
+        gl.glVertex3f(box[0], box[3], box[4]);
+        gl.glVertex3f(box[1], box[3], box[4]);
+        gl.glVertex3f(box[1], box[2], box[4]);
+        gl.glEnd();
+
+    }
 
 	private void makeRobotJump() {
         if(jumping) {
@@ -381,21 +391,36 @@ public class A4 implements GLEventListener, KeyListener {
             boundingBoxes.addAll(content.getBoundingBox(true));
         }
 
-        for(Shape object : worldObjects) {
-            for(float[] box : object.getBoundingBox(false)) {
-                for(float[] roboBox : boundingBoxes) {
-                    if(roboBox[0] <= box[1] && roboBox[1] >= box[0]) {
-                        if(roboBox[2] <= box[3] && roboBox[3] >= box[2]) {
-                            if(roboBox[4] <= box[5] && roboBox[5] >= box[4]) {
-                                return true;
-                            }
-                        }
+        for (float[] roboBox : boundingBoxes) {
+            for(Shape object : worldObjects) {
+                for (float[] box : object.getBoundingBox(false)) {
+                    if (collision(roboBox, box)) {
+                        return true;
                     }
+                }
+            }
+
+            if (collision(roboBox, animated.getBoundingBox())) {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
+
+    private boolean collision(float[] roboBox, float[] box) {
+        boolean hit = false;
+
+        if(roboBox[0] <= box[1] && roboBox[1] >= box[0]) {
+            if(roboBox[2] <= box[3] && roboBox[3] >= box[2]) {
+                if(roboBox[4] <= box[5] && roboBox[5] >= box[4]) {
+                    hit = true;
                 }
             }
         }
 
-        return false;
+        return hit;
     }
 
 	private void drawWorldObjects(GL2 gl) {
@@ -469,6 +494,8 @@ public class A4 implements GLEventListener, KeyListener {
         } else if(e.getKeyChar() == ' ') {
             JUMP = true;
             jumping = true;
+        } else if(e.getKeyChar() == 's') {
+            VELOCITY += -.005f;
         }
 	}
 
@@ -737,4 +764,52 @@ public class A4 implements GLEventListener, KeyListener {
 			}
 		}
 	}
+
+	private class AnimatedObject {
+        private float _xMod;
+        private float _yMod = 0f;
+        private float _zMod;
+        private float _radius = .1f;
+        private float _length = 1f;
+        private float _rotate = 90f;
+        private int _textureCoord;
+
+        private AnimatedObject(float xMod, float zMod, int tex) {
+            _xMod = xMod;
+            _zMod = zMod;
+            _textureCoord = tex;
+        }
+
+        private void draw(GL2 gl, float time) {
+            gl.glPushMatrix();
+            GLUquadric quadric = glu.gluNewQuadric();
+
+            _rotate += 5;
+            gl.glTranslatef(_xMod, _yMod, _zMod);
+            gl.glRotatef(_rotate, 1, 1, 1);
+            gl.glTranslatef(-_xMod, -_yMod, -_zMod);
+
+            gl.glTranslatef(_xMod, _yMod, _zMod);
+
+            glu.gluQuadricTexture(quadric, true);
+            glu.gluQuadricDrawStyle(quadric, GLU.GLU_FILL);
+
+            textures[_textureCoord].enable(gl);
+            textures[_textureCoord].bind(gl);
+            glu.gluSphere(quadric, _radius, 32, 32);
+            textures[_textureCoord].disable(gl);
+            gl.glPopMatrix();
+        }
+
+        private float[] getBoundingBox() {
+            float minX = (_xMod - _radius);
+            float maxX = (_xMod + _radius);
+            float minY = (_yMod - _radius);
+            float maxY = (_yMod + _radius);
+            float minZ = (_zMod - _radius);
+            float maxZ = (_zMod + _radius);
+
+            return new float[] {minX, maxX, minY, maxY, minZ, maxZ};
+        }
+    }
 }
