@@ -26,13 +26,12 @@ metal.jpg - http://www.textures.com/download/metalbare0064/5350
 */
 
 public class A4 implements GLEventListener, KeyListener {
-	public static final boolean TRACE = false;
+	private static final boolean TRACE = false;
 
-	public static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
-	public static final int INITIAL_WIDTH = 640;
-	public static final int INITIAL_HEIGHT = 640;
-	public static float VELOCITY = .05f;
-	public static float ROTATION = 0f;
+	private static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
+	private static final int INITIAL_WIDTH = 640;
+	private static final int INITIAL_HEIGHT = 640;
+	private static float VELOCITY = .05f;
     private static float XCOORD = 0f;
     private static boolean JUMP = false;
 
@@ -42,7 +41,7 @@ public class A4 implements GLEventListener, KeyListener {
 	// Name of the input file path
 	private static final String TEXTURE_PATH = "resources/";
 
-	public static final String[] TEXTURE_FILES = { "ObjectText.jpg", "08.jpg", "floor.jpg", "wood.jpg", "metal.jpg"};
+    private static final String[] TEXTURE_FILES = { "ObjectText.jpg", "08.jpg", "floor.jpg", "wood.jpg", "metal.jpg"};
 
 	private static final GLU glu = new GLU();
 
@@ -107,7 +106,6 @@ public class A4 implements GLEventListener, KeyListener {
 			}
 		}, 1000, 1000/60);
 
-		// TODO: Add/modify code here
 		Rotator head = new Rotator(new float[]{0,0,0}, new float[]{0,1,0}, 0, -30, 30, 1);
 		Rotator rightShoulder = new Rotator(new float[]{0,0,0}, new float[]{1,0,0}, 30, -30, 30, 1);
 		Rotator rightElbow = new Rotator(new float[]{0,0.075f,0}, new float[]{1,0,0}, 30, -30, 30, 1);
@@ -269,39 +267,14 @@ public class A4 implements GLEventListener, KeyListener {
 		gl.glLoadIdentity();
 
         if(JUMP) {
-            if(jumping) {
-                robotY += .05f;
-            } else {
-                robotY -= .05f;
-            }
-
-            if(robotY >= 5) {
-                jumping = false;
-            } else if(robotY <= 0) {
-                robotY = 0;
-                JUMP = false;
-            }
+            makeRobotJump();
         }
 
         if(robotCollided()) {
-            robotZ = 0;
-            XCOORD = 0;
-            VELOCITY = 0.05f;
+            resetRobot();
         }
 
-		if (1 == cameraAngle) {
-			gl.glTranslatef(0.0f, -0.9f, -2.3f);
-			gl.glRotatef(-180, 0f, 1f, 0f);
-            gl.glRotatef(-15, 1f, 0f, 0f);
-		} else {
-			gl.glTranslatef(0.0f, -0.9f, 0);
-			gl.glRotatef(-180, 0f, 1f, 0f);
-		}
-
-
-        gl.glTranslatef(-XCOORD, -robotY, -robotZ);
-
-		gl.glPushMatrix();
+        setCameraAngle(gl);
 
         drawRobot(gl);
 
@@ -312,9 +285,49 @@ public class A4 implements GLEventListener, KeyListener {
 		}
 	}
 
-   private float[][] converToMultiDemArray(float[] vertices) {
-       return new float[][] { {vertices[0]}, {vertices[1]}, {vertices[2]}, {1}};
-   }
+	private void makeRobotJump() {
+        if(jumping) {
+            robotY += .05f;
+        } else {
+            robotY -= .05f;
+        }
+
+        if(robotY >= 5) {
+            jumping = false;
+        } else if(robotY <= 0) {
+            robotY = 0;
+            JUMP = false;
+        }
+    }
+
+	private void resetRobot() {
+        robotZ = 0;
+        XCOORD = 0;
+        robotY = 0;
+        jumping = false;
+        JUMP = false;
+        VELOCITY = 0.05f;
+    }
+
+    private void setCameraAngle(GL2 gl) {
+        if (1 == cameraAngle) {
+            gl.glTranslatef(0.0f, -0.9f, -2.3f);
+            gl.glRotatef(-180, 0f, 1f, 0f);
+            gl.glRotatef(-15, 1f, 0f, 0f);
+        } else {
+            gl.glTranslatef(0.0f, -0.9f, 0);
+            gl.glRotatef(-180, 0f, 1f, 0f);
+        }
+
+
+        gl.glTranslatef(-XCOORD, -robotY, -robotZ);
+
+        gl.glPushMatrix();
+    }
+
+    private float[][] converToMultiDemArray(float[] vertices) {
+        return new float[][] { {vertices[0]}, {vertices[1]}, {vertices[2]}, {1}};
+    }
 
     private float[][] transformPoints(float[][] transformation, float[] vertices) {
         float[][] point = converToMultiDemArray(vertices);
@@ -338,7 +351,7 @@ public class A4 implements GLEventListener, KeyListener {
         return result;
     }
 
-    public float[][] multiply(float[][] a, float[][] b) {
+    private float[][] multiply(float[][] a, float[][] b) {
         float[][] result = new float[4][4];
 
         for (int i = 0; i < 4; i++)
@@ -428,7 +441,6 @@ public class A4 implements GLEventListener, KeyListener {
 		if (TRACE)
 			System.out.println("-> executing reshape(" + x + ", " + y + ", " + width + ", " + height + ")");
 
-		final GL2 gl = drawable.getGL().getGL2();
 		ar = (float)width / (height == 0 ? 1 : height);
 	}
 
@@ -460,12 +472,12 @@ public class A4 implements GLEventListener, KeyListener {
         }
 	}
 
-	class Face {
+    private class Face {
 		private int[] indices;
 		private float[] colour;
         private int texture;
 
-		public Face(int[] indices, float[] colour, int texture) {
+        private Face(int[] indices, float[] colour, int texture) {
 			this.indices = new int[indices.length];
 			this.colour = new float[colour.length];
 			System.arraycopy(indices, 0, this.indices, 0, indices.length);
@@ -473,7 +485,7 @@ public class A4 implements GLEventListener, KeyListener {
             this.texture = texture;
 		}
 
-		public float[] getBoundingBox(ArrayList<float[]> vertices, float[] scale, float xOffset, float yOffset, float zOffset) {
+        private float[] getBoundingBox(ArrayList<float[]> vertices, float[] scale, float xOffset, float yOffset, float zOffset) {
             float minX = 500;
             float minY = 500;
             float maxX = -500;
@@ -518,7 +530,7 @@ public class A4 implements GLEventListener, KeyListener {
             return box;
         }
 
-		public void draw(GL2 gl, ArrayList<float[]> vertices, boolean useColour) {
+        private void draw(GL2 gl, ArrayList<float[]> vertices, boolean useColour) {
 			if (useColour && texture == -1) {
 				if (colour.length == 3)
 					gl.glColor3f(colour[0], colour[1], colour[2]);
@@ -555,22 +567,21 @@ public class A4 implements GLEventListener, KeyListener {
 		}
 	}
 
-	// TODO: rewrite the following as you like
 	class Shape {
 		// set this to NULL if you don't want outlines
-		public float[] line_colour;
+        private float[] line_colour;
 
-		protected ArrayList<float[]> vertices;
-		protected ArrayList<Face> faces;
+        private ArrayList<float[]> vertices;
+        private ArrayList<Face> faces;
 		
 		private float[] scale;
 		private Rotator rotator;
 
-        public float xOffset;
-        public float zOffset;
+        private float xOffset;
+        private float zOffset;
         private float yOffset;
 
-		public Shape(float[] scale, Rotator rotator, int texture) {
+        private Shape(float[] scale, Rotator rotator, int texture) {
 			// you could subclass Shape and override this with your own
 			init(scale, rotator);
 
@@ -579,7 +590,7 @@ public class A4 implements GLEventListener, KeyListener {
 
 		}
 
-		public Shape(float[] scale, float[] offset, int texture) {
+        private Shape(float[] scale, float[] offset, int texture) {
             init(scale, null);
             addVerticesAndFaces(texture);
             xOffset = offset[0];
@@ -618,9 +629,9 @@ public class A4 implements GLEventListener, KeyListener {
             faces.add(new Face(new int[] { 1, 0, 4, 5 }, new float[] { 0.0f, 1.0f, 1.0f } , texture));
         }
 
-		protected void init(float[] scale, Rotator rotator) {
-			vertices = new ArrayList<float[]>();
-			faces = new ArrayList<Face>();
+        private void init(float[] scale, Rotator rotator) {
+			vertices = new ArrayList<>();
+			faces = new ArrayList<>();
 
 			line_colour = new float[] { 1,1,1 };
 			if (null == scale) {
@@ -632,7 +643,7 @@ public class A4 implements GLEventListener, KeyListener {
 			this.rotator = rotator;
 		}
 
-		public void rotate(GL2 gl) {
+        private void rotate(GL2 gl) {
 			if (rotator != null) {
 				gl.glTranslatef(rotator.origin[0], rotator.origin[1], rotator.origin[2]);
 				gl.glRotatef(rotator.angle, rotator.axis[0], rotator.axis[1], rotator.axis[2]);
@@ -663,13 +674,12 @@ public class A4 implements GLEventListener, KeyListener {
 		}
 	}
 
-	// TODO: rewrite the following as you like
-	class Structure extends Shape {
+    private class Structure extends Shape {
 		// this array can include other structures...
 		private Shape[] contents;
 		private float[][] positions;
 
-		public Structure(Shape[] contents, float[][] positions, float[] scale, Rotator rotator, int texture) {
+        private Structure(Shape[] contents, float[][] positions, float[] scale, Rotator rotator, int texture) {
 			super(scale, rotator, texture);
 			init(contents, positions);
 		}
@@ -694,14 +704,14 @@ public class A4 implements GLEventListener, KeyListener {
 			}
 		}
 	}
-	
-	class Rotator {
-		public float[] origin;
-		public float[] axis;
-		public float angle, startAngle, endAngle, vAngle;
+
+    private class Rotator {
+        private float[] origin;
+        private float[] axis;
+        private float angle, startAngle, endAngle, vAngle;
 		boolean up;
-		
-		public Rotator(float[] origin, float[] axis, float angle, float startAngle, float endAngle, float vAngle) {
+
+        private Rotator(float[] origin, float[] axis, float angle, float startAngle, float endAngle, float vAngle) {
 			this.origin = new float[] {origin[0], origin[1], origin[2]};
 			this.axis = new float[] {axis[0], axis[1], axis[2]};
 			this.angle = angle;
@@ -710,8 +720,8 @@ public class A4 implements GLEventListener, KeyListener {
 			this.vAngle = vAngle;
 			this.up = true;
 		}
-		
-		public void update(float elapsed) {
+
+        private void update(float elapsed) {
 			if (up) {
 				angle += elapsed * vAngle;
 				if (angle > endAngle) {
