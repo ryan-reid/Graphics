@@ -27,19 +27,27 @@ Rock.jpg - http://www.textures.com/download/rockjagged0010/25537
 Projectile.jpg - http://www.textures.com/download/grungemaps0135/45588
 */
 
-public class A4 implements GLEventListener, KeyListener {
+public class A4 implements GLEventListener, KeyListener, MouseListener, MouseMotionListener {
 	private static final boolean TRACE = false;
 
 	private static final String WINDOW_TITLE = "A3Q2: [Ryan Reid]";
 	private static final int INITIAL_WIDTH = 640;
 	private static final int INITIAL_HEIGHT = 640;
-	private static float VELOCITY = .0f;
+	private static float VELOCITY = .05f;
     private static float XCOORD = 0f;
     private static boolean JUMP = false;
     private static int lastGenerationInBlocks = 0;
 
     private static float robotY = 0f;
     private static boolean jumping = false;
+    private static boolean mouseClicked = false;
+    private static boolean firstPerson = true;
+    private static int currentMouseX;
+    private static int currentMouseY;
+    private static float xAngle = 0f;
+    private static float yAngle = 0f;
+    private static int oldMouseX;
+    private static int oldMouseY;
 
 	// Name of the input file path
 	private static final String TEXTURE_PATH = "resources/";
@@ -67,6 +75,8 @@ public class A4 implements GLEventListener, KeyListener {
 			self.getClass().getMethod("setup", new Class[] { GLCanvas.class }).invoke(self, canvas);
 			canvas.addGLEventListener((GLEventListener)self);
 			canvas.addKeyListener((KeyListener)self);
+            canvas.addMouseListener((MouseListener)self);
+            canvas.addMouseMotionListener((MouseMotionListener)self);
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -91,7 +101,6 @@ public class A4 implements GLEventListener, KeyListener {
 	/*** Instance variables and methods ***/
 
 	private float ar;
-	private int cameraAngle = 0;
 	private Texture[] textures;
 	private Structure robot;
 	private Rotator[] rotators;
@@ -99,6 +108,7 @@ public class A4 implements GLEventListener, KeyListener {
 
     private ArrayList<Shape> worldObjects = new ArrayList<>();
     private ArrayList<AnimatedObject> animatedObjects = new ArrayList<>();
+    private ArrayList<AnimatedObject> projectiles = new ArrayList<>();
 
 	public void setup(final GLCanvas canvas) {
 		// Called for one-time setup
@@ -266,7 +276,6 @@ public class A4 implements GLEventListener, KeyListener {
         gl.glFogfv(GL2.GL_FOG_COLOR, new float[] {0,0,0}, 0);
         gl.glFogi(GL2.GL_FOG_MODE, GL2.GL_EXP);
         gl.glFogf(GL2.GL_FOG_DENSITY, .3f);
-
 	}
 
 	@Override
@@ -340,11 +349,28 @@ public class A4 implements GLEventListener, KeyListener {
     }
 
     private void setCameraAngle(GL2 gl) {
-        if (1 == cameraAngle) {
+        if (!firstPerson) {
             gl.glTranslatef(0.0f, -0.9f, -2.3f);
             gl.glRotatef(-180, 0f, 1f, 0f);
             gl.glRotatef(-15, 1f, 0f, 0f);
         } else {
+            if(mouseClicked) {
+
+                if(currentMouseX - oldMouseX > 1) {
+                    xAngle += 1.5f;
+                } else if(currentMouseX - oldMouseX < -1) {
+                    xAngle -= 1.5f;
+                }
+
+                if(currentMouseY - oldMouseY > 1) {
+                    yAngle += 1.5f;
+                } else if(currentMouseY - oldMouseY < -1) {
+                    yAngle -= 1.5f;
+                }
+
+                gl.glRotatef(-yAngle, 1, 0, 0);
+                gl.glRotatef(xAngle, 0, 1, 0);
+            }
             gl.glTranslatef(0.0f, -0.9f, 0);
             gl.glRotatef(-180, 0f, 1f, 0f);
         }
@@ -501,10 +527,7 @@ public class A4 implements GLEventListener, KeyListener {
 	@Override
 	public void keyTyped(KeyEvent e) {
 		if (e.getKeyChar() == (char) 10) {
-			cameraAngle++;
-			if (cameraAngle == 2) {
-				cameraAngle = 0;
-			}
+			firstPerson = !firstPerson;
 			((GLCanvas)e.getSource()).repaint();
 		} else if(e.getKeyChar() == 'w') {
 			VELOCITY += .005f;
@@ -517,6 +540,48 @@ public class A4 implements GLEventListener, KeyListener {
             jumping = true;
         }
 	}
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+        oldMouseX = currentMouseX;
+        oldMouseY = currentMouseY;
+        currentMouseX = e.getX();
+        currentMouseY = INITIAL_HEIGHT - e.getY();
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        oldMouseX = e.getX();
+        oldMouseY = INITIAL_HEIGHT - e.getY();
+        currentMouseX = e.getX();
+        currentMouseY = INITIAL_HEIGHT - e.getY();
+        mouseClicked = true;
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        mouseClicked = false;
+        xAngle = 0;
+        yAngle = 0;
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+    }
+
 
     private class Face {
 		private int[] indices;
